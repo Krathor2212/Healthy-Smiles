@@ -36,8 +36,6 @@ const normalizedImages: ImageSource[] = imageUrls.map((entry) => {
 const leftColumnImages: ImageSource[] = normalizedImages.filter((_, index) => index % 2 === 0);
 const rightColumnImages: ImageSource[] = normalizedImages.filter((_, index) => index % 2 !== 0);
 
-const AnimatedImage = Animated.createAnimatedComponent(Image);
-
 const InvitesScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
     const [currentBgIndex, setCurrentBgIndex] = useState(0);
 
@@ -67,13 +65,19 @@ const InvitesScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
     return (
         <View style={styles.container}>
             {/* --- Background Section --- */}
-            <AnimatedImage
+            {/* Animated wrapper — apply entering/exiting to the wrapper, not the Image */}
+            <Animated.View
                 key={currentBgIndex}
-                source={normalizedImages[currentBgIndex] as any}
-                style={styles.backgroundImage}
+                style={styles.backgroundWrapper}
                 entering={FadeIn.duration(1000)}
                 exiting={FadeOut.duration(1000)}
-            />
+            >
+                <Image
+                    source={normalizedImages[currentBgIndex] as any}
+                    style={styles.backgroundImage}
+                    resizeMode="cover"
+                />
+            </Animated.View>
             <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
 
             {/* --- Marquee Section --- */}
@@ -100,7 +104,7 @@ const InvitesScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
                 <Text style={styles.welcomeText}>Welcome to</Text>
                 <Text style={styles.titleText}>Healthy Smiles</Text>
                 <Text style={styles.descriptionText}>
-                    Where All your Medical Files and Records are Safe and Secure.
+                    Where All your Medicinal Files and Records are Safe and Secure.
                 </Text>
 
                 {/* Get Started button */}
@@ -131,11 +135,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#000',
         justifyContent: 'center',
     },
+    // wrapper for the animated layout — full-screen
+    backgroundWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        width,
+        height,
+    },
     backgroundImage: {
         ...StyleSheet.absoluteFillObject,
-        width: width,
-        height: height,
-        opacity: 0.4,
+        width,
+        height,
+        opacity: 0.4, // static opacity on Image (not animated by Reanimated layout)
     },
     marqueeContainer: {
         flexDirection: 'row',
