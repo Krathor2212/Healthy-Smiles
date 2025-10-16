@@ -1,51 +1,95 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import React, { useRef, useState } from 'react';
 import {
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const SignUpScreen = () => {
-  // Move hooks inside the component (fixes "invalid hook call")
   const backScale = useRef(new Animated.Value(1)).current;
   const navigation = useNavigation();
 
   const onBackPressIn = () => Animated.spring(backScale, { toValue: 0.93, useNativeDriver: true }).start();
   const onBackPressOut = () => Animated.spring(backScale, { toValue: 1, useNativeDriver: true }).start();
   const handleBack = () => {
-    // navigation is now available here
     navigation.goBack();
   };
 
-  // State for form fields and UI
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // --- Handlers ---
-  const handleSignUp = () => {
-    // Add your sign-up logic here
-    console.log('Signing up with:', { name, email, password, agreedToTerms });
+  const handleSignUp = async () => {
     if (!agreedToTerms) {
-      alert('You must agree to the Terms of Service and Privacy Policy.');
+      Alert.alert('Terms required', 'You must agree to the Terms of Service and Privacy Policy.');
       return;
     }
-    // Proceed with sign up
+    if (!name.trim() || !email.trim() || !password) {
+      Alert.alert('Missing fields', 'Please provide name, email and password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('http://10.11.146.215:4000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'patient',
+          name: name.trim(),
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.message || data?.error || 'Registration failed';
+        Alert.alert('Signup error', msg);
+        return;
+      }
+
+      const token = data?.token ?? data?.accessToken;
+      if (!token) {
+        Alert.alert('Signup error', 'No token received from server');
+        return;
+      }
+
+      try {
+        await AsyncStorage.setItem('token', token);
+      } catch (e) {
+        console.warn('Failed to persist token', e);
+      }
+
+      // navigate into app
+      // replace to clear signup stack
+      // adjust route name if different in your app
+      (navigation as any).replace?.('Home') ?? (navigation as any).navigate?.('Home');
+    } catch (err: any) {
+      Alert.alert('Network error', err?.message || 'Unable to reach server');
+    } finally {
+      setLoading(false);
+    }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -132,8 +176,12 @@ const SignUpScreen = () => {
           </View>
 
           {/* --- Sign Up Button --- */}
-          <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
-            <Text style={styles.signUpButtonText}>Sign Up</Text>
+          <TouchableOpacity
+            style={[styles.signUpButton, loading && { opacity: 0.85 }]}
+            onPress={handleSignUp}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.signUpButtonText}>Sign Up</Text>}
           </TouchableOpacity>
 
           {/* --- Sign In Link --- */}

@@ -18,4 +18,5 @@ app.post('/register', register);
 app.post('/login', login);
 
 const port = process.env.PORT || 4000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+const ip = '10.11.146.215';
+app.listen(port, ip, () => console.log(`Server running on http://${ip}:${port}`));

@@ -1,44 +1,78 @@
 import { AntDesign, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationProp } from '@react-navigation/native';
 import React, { useRef, useState } from 'react';
 import {
-    Animated,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
-  // State for form fields and UI
+export default function LoginScreen({ navigation }: { navigation: NavigationProp<any> }) {
+  // Default role set to 'patient' — role selection removed
+  const [role, setRole] = useState('patient');
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState('');
 
   // --- Handlers ---
-  const handleLogin = () => {
-    // Reset error message
+  const handleLogin = async () => {
     setError('');
-
-    // Simple validation for demonstration
     if (!email || !password) {
       setError('Please enter both email and password.');
       return;
     }
-    // Simulate incorrect password error as shown in the image
-    if (password === 'password123') { // A "correct" password for demo
-      console.log('Login successful!');
-      // Navigate to the home screen or another part of the app
-    } else {
-      setError('The password you entered is wrong');
+
+    setLoading(true);
+    try {
+      const resp = await fetch('http://10.11.146.215:4000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'patient', email, password }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        // backend error message expected in data.message
+        const msg = data?.message || 'Login failed';
+        setError(msg);
+        return;
+      }
+
+      // Expecting { token: '...' } or similar
+      const token = data?.token ?? data?.accessToken;
+      if (!token) {
+        setError('Authentication succeeded but no token returned');
+        return;
+      }
+
+      // persist token
+      try {
+        await AsyncStorage.setItem('token', token);
+      } catch (e) {
+        // non-fatal, still proceed
+        console.warn('Failed to save token', e);
+      }
+
+      navigation.navigate('Home');
+    } catch (err: any) {
+      Alert.alert('Network error', err?.message || 'Unable to reach server');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,8 +90,12 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   };
   
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="#ffffff" // make status bar background match screen
+        translucent={false}      // ensure content is placed below the status bar on Android
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -122,8 +160,17 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
         </View>
 
         {/* --- Login Button --- */}
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Login</Text>
+        <TouchableOpacity
+          style={[styles.loginButton, loading && { opacity: 0.85 }]}
+          onPress={handleLogin}
+          disabled={loading}
+          accessibilityRole="button"
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginButtonText}>Login</Text>
+          )}
         </TouchableOpacity>
 
         {/* --- Sign Up Link --- */}
@@ -305,5 +352,3 @@ const styles = StyleSheet.create({
     height: 72,
   },
 });
-
-export default LoginScreen;
