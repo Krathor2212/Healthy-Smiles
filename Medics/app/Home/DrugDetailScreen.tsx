@@ -1,19 +1,21 @@
 // app/drug-detail.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import type { RootStackParamList } from '../navigation/types';
 import { Product, useCartStore } from './stores/cartStores';
 
 export default function DrugDetailScreen() {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   // route.params may be undefined; try to read product
   const params: any = (route as any).params || {};
   const productString = params.product as string;

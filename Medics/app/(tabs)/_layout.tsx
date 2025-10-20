@@ -3,6 +3,7 @@ import React from 'react';
 import ArticlesScreen from '../Home/articles';
 import CartScreen from '../Home/CartScreen';
 import DrugDetailScreen from '../Home/DrugDetailScreen';
+import FindDoctorsScreen from '../Home/findDoctors';
 import Home from '../Home/Home';
 import PharmacyScreen from '../Home/PharmacyScreen';
 import TopDoctorScreen from '../Home/topdoctor';
@@ -35,6 +36,7 @@ export default function App() {
       <Stack.Screen name="PharmacyScreen" component={PharmacyScreen} />
       <Stack.Screen name="DrugDetailScreen" component={DrugDetailScreen} />
       <Stack.Screen name="topdoctor" component={TopDoctorScreen} />
+      <Stack.Screen name="FindDoctorsScreen" component={FindDoctorsScreen} />
     </Stack.Navigator>
   );
 }

@@ -1,6 +1,10 @@
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
-import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, Pressable, Text, TouchableOpacity } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { RootStackParamList } from '../navigation/types';
 import { topDoctorStyles } from "./styles/topDoctorStyles";
 
 type Doctor = {
@@ -57,59 +61,62 @@ const doctors: Doctor[] = [
 
 export default function TopDoctorScreen() {
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const handleDoctorPress = (doctorId: string) => {
     setSelectedDoctor(doctorId);
     console.log(`Doctor ${doctorId} selected`);
   };
 
-  const handleBackPress = () => {
-    (navigation as any).goBack();
-  };
+  const handleBackPress = () => navigation.goBack();
 
   return (
-    <View style={topDoctorStyles.container}>
-      {/* Header with Back Button */}
-      <View style={topDoctorStyles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={topDoctorStyles.backButton}>
-          <Text style={topDoctorStyles.backButtonText}>←</Text>
-        </TouchableOpacity>
+    <SafeAreaView style={topDoctorStyles.container} edges={["top"]}>
+      <Pressable style={topDoctorStyles.header} onPress={() => {}} accessible={false}>
+        <Pressable
+          onPress={handleBackPress}
+          android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+          style={topDoctorStyles.backButton}
+          accessibilityLabel="Go back"
+        >
+          <Feather name="chevron-left" size={18} color="#1A202C" />
+        </Pressable>
         <Text style={topDoctorStyles.title}>Top Doctor</Text>
-        <View style={topDoctorStyles.placeholder} />
-      </View>
+        <Text style={topDoctorStyles.placeholder} />
+      </Pressable>
 
       <FlatList
         data={doctors}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 32, paddingTop: 6 }}
         renderItem={({ item }) => (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
               topDoctorStyles.card,
               selectedDoctor === item.id && topDoctorStyles.selectedCard
             ]}
             onPress={() => handleDoctorPress(item.id)}
-            activeOpacity={0.7}
+            activeOpacity={0.85}
           >
             <Image source={{ uri: item.image }} style={topDoctorStyles.image} />
-            <View style={topDoctorStyles.infoContainer}>
+            <Pressable style={topDoctorStyles.infoContainer} onPress={() => handleDoctorPress(item.id)}>
               <Text style={topDoctorStyles.name}>{item.name}</Text>
               <Text style={topDoctorStyles.specialty}>{item.specialty}</Text>
-              <View style={topDoctorStyles.detailsContainer}>
-                <View style={topDoctorStyles.ratingContainer}>
-                  <Text style={topDoctorStyles.ratingIcon}>📌</Text>
+              <Pressable style={topDoctorStyles.detailsContainer} onPress={() => {}}>
+                <Pressable style={topDoctorStyles.ratingContainer}>
+                  <Ionicons name="star" size={14} color="#0AB6AB" />
                   <Text style={topDoctorStyles.rating}>{item.rating}</Text>
-                </View>
-                <View style={topDoctorStyles.distanceContainer}>
-                  <Text style={topDoctorStyles.distanceIcon}>🗥</Text>
+                </Pressable>
+                <Pressable style={topDoctorStyles.distanceContainer}>
+                  <Ionicons name="location-outline" size={14} color="#0AB6AB" />
                   <Text style={topDoctorStyles.distance}>{item.distance}</Text>
-                </View>
-              </View>
-            </View>
+                </Pressable>
+              </Pressable>
+            </Pressable>
           </TouchableOpacity>
         )}
         showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 }

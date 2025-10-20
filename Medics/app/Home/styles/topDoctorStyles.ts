@@ -4,16 +4,27 @@ export const topDoctorStyles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: "#fff", 
-    padding: 20 
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    paddingVertical: 8,
+    marginBottom: 8,
   },
   backButton: {
     padding: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    elevation: 2,
   },
   backButtonText: {
     fontSize: 24,
@@ -30,26 +41,34 @@ export const topDoctorStyles = StyleSheet.create({
   },
   card: {
     flexDirection: "row", 
-    marginBottom: 15, 
+    marginBottom: 14, 
     alignItems: "center",
-    backgroundColor: "#f8f9fa",
-    padding: 15,
-    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e9ecef"
+    borderColor: "#F1F5F9",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    marginHorizontal: 6,
   },
   selectedCard: {
     backgroundColor: "#e3f2fd",
     borderColor: "#0AB6AB"
   },
   image: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 30, 
-    marginRight: 15 
+    width: 58, 
+    height: 58, 
+    borderRadius: 29, 
+    marginRight: 16,
+    resizeMode: 'cover'
   },
   infoContainer: {
-    flex: 1
+    flex: 1,
+    justifyContent: 'center'
   },
   name: { 
     fontWeight: "bold", 
@@ -95,5 +114,4 @@ export const topDoctorStyles = StyleSheet.create({
   }
 });
 
-// Placeholder default export to prevent Expo Router treating this as a missing route.
 export default function TopDoctorStylesRoutePlaceholder() { return null; }

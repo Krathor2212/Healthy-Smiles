@@ -1,13 +1,13 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import Constants from 'expo-constants';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Animated,
-    KeyboardAvoidingView,
+    Animated, Keyboard, KeyboardAvoidingView,
     Platform,
     Pressable,
     SafeAreaView,
@@ -17,12 +17,23 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import type { RootStackParamList } from '../navigation/types';
 
 const SignUpScreen = () => {
   const backScale = useRef(new Animated.Value(1)).current;
-  const navigation = useNavigation();
+  const headerSlide = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      Animated.timing(headerSlide, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      Animated.timing(headerSlide, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+    });
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, [headerSlide]);
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const onBackPressIn = () => Animated.spring(backScale, { toValue: 0.93, useNativeDriver: true }).start();
   const onBackPressOut = () => Animated.spring(backScale, { toValue: 1, useNativeDriver: true }).start();
@@ -81,10 +92,12 @@ const SignUpScreen = () => {
         console.warn('Failed to persist token', e);
       }
 
-      // navigate into app
-      // replace to clear signup stack
-      // adjust route name if different in your app
-      (navigation as any).replace?.('Home') ?? (navigation as any).navigate?.('Home');
+      // navigate into app (replace to clear signup stack)
+      if ((navigation as any).replace) {
+        (navigation as any).replace('Home');
+      } else {
+        navigation.navigate('Home');
+      }
     } catch (err: any) {
       Alert.alert('Network error', err?.message || 'Unable to reach server');
     } finally {
@@ -114,9 +127,12 @@ const SignUpScreen = () => {
         </Animated.View>
 
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          <View style={styles.header}>
+          <Animated.View style={[styles.header, { transform: [
+            { translateX: headerSlide.interpolate({ inputRange: [0,1], outputRange: [0, 18] }) },
+            { translateY: headerSlide.interpolate({ inputRange: [0,1], outputRange: [0, 6] }) },
+          ] }]}>
             <Text style={styles.title}>Sign Up</Text>
-          </View>
+          </Animated.View>
 
           {/* --- Name Input --- */}
           <View style={styles.inputContainer}>

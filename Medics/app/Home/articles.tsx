@@ -1,4 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useMemo, useState } from "react";
 import {
     ScrollView,
@@ -7,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import type { RootStackParamList } from '../navigation/types';
 import { articlesStyles } from "./styles/articlesStyles";
 import { Article, ArticlesData } from "./types/articles";
 
@@ -551,7 +553,7 @@ Consistency matters more than equipment availability.`,
 type ArticleCategory = keyof ArticlesData;
 
 export default function ArticlesScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [activeTag, setActiveTag] = useState<ArticleCategory>("Diseases");
   const [searchText, setSearchText] = useState("");
   const [showAllTrending, setShowAllTrending] = useState(false);
@@ -603,7 +605,7 @@ export default function ArticlesScreen() {
     if (selectedArticle) {
       handleBackToArticles();
     } else {
-    (navigation as any).goBack();
+  navigation.goBack();
     }
   };
 

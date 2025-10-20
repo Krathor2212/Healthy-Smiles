@@ -1,6 +1,7 @@
 // app/cart.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import React from 'react';
 import {
     FlatList,
@@ -9,10 +10,11 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import type { RootStackParamList } from '../navigation/types';
 import { useCartStore } from './stores/cartStores';
 
 export default function CartScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { 
     items, 
     removeFromCart, 

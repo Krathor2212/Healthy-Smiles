@@ -2,13 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import React, { useState } from "react";
 import {
-    Image,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { homeStyles } from "./styles/homeStyles";
 
@@ -145,7 +145,7 @@ export default function HomeScreen() {
         navigation.navigate('PharmacyScreen');
         break;
       case 'Doctor':
-        // Add doctor navigation if needed
+        navigation.navigate('FindDoctorsScreen');
         break;
       case 'Hospital':
         // Add hospital navigation if needed
@@ -265,7 +265,7 @@ export default function HomeScreen() {
       >
         <View style={homeStyles.articleHeader}>
           <Text style={homeStyles.articleTitle}>
-            📰 5 Tips for a Healthy Heart
+            <Ionicons name="newspaper-outline" size={16} color="#111827" /> 5 Tips for a Healthy Heart
           </Text>
           <Ionicons 
             name={showArticleContent ? "chevron-up" : "chevron-down"} 

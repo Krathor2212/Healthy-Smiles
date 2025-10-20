@@ -2,21 +2,20 @@ import { AntDesign, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationProp } from '@react-navigation/native';
 import Constants from 'expo-constants';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Image, Keyboard, KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -78,8 +77,20 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
     }
   };
 
-  // Back button animation using RN Animated
   const backScale = useRef(new Animated.Value(1)).current;
+  const headerSlide = useRef(new Animated.Value(0)).current; // 0 => hidden, 1 => shifted
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      Animated.timing(headerSlide, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      Animated.timing(headerSlide, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [headerSlide]);
   const onBackPressIn = () => Animated.spring(backScale, { toValue: 0.93, useNativeDriver: true }).start();
   const onBackPressOut = () => Animated.spring(backScale, { toValue: 1, useNativeDriver: true }).start();
   const handleBack = () => {
@@ -119,9 +130,17 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
         <View style={styles.topCenter} pointerEvents="none">
           <Image source={require('../../assets/logo.png')} style={styles.topLogo} resizeMode="contain" />
         </View>
-        <View style={styles.header}>
+        <Animated.View
+          style={[
+            styles.header,
+            { transform: [
+              { translateX: headerSlide.interpolate({ inputRange: [0, 1], outputRange: [0, 18] }) },
+              { translateY: headerSlide.interpolate({ inputRange: [0, 1], outputRange: [0, 6] }) },
+            ] },
+          ]}
+        >
           <Text style={styles.title}>Login</Text>
-        </View>
+        </Animated.View>
 
         {/* --- Email Input --- */}
         <View style={styles.inputContainer}>
