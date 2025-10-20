@@ -1,21 +1,22 @@
 import { AntDesign, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationProp } from '@react-navigation/native';
+import Constants from 'expo-constants';
 import React, { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -38,7 +39,8 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
 
     setLoading(true);
     try {
-      const resp = await fetch('http://10.11.146.215:4000/login', {
+      const backend = (Constants.expoConfig?.extra?.BACKEND_URL || (Constants.manifest as any)?.extra?.BACKEND_URL) || 'http://10.11.146.215:4000';
+      const resp = await fetch(`${backend.replace(/\/$/, '')}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'patient', email, password }),

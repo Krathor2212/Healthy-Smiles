@@ -1,4 +1,3 @@
-// app/home.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import React, { useState } from "react";
