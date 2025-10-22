@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
 import {
   Image,
@@ -10,10 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { homeStyles } from "./styles/homeStyles";
+import type { RootStackParamList } from '../navigation/types';
+import { homeStyles } from "../Pages/styles/homeStyles";
 
 export default function HomeScreen() {
-  const navigation = useNavigation<NavigationProp<any>>();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [showArticleContent, setShowArticleContent] = useState(false);
 
   const doctors = [
@@ -229,10 +231,18 @@ export default function HomeScreen() {
         style={homeStyles.horizontalScroll}
       >
         {doctors.map((doc) => (
-          <TouchableOpacity
+            <TouchableOpacity
             key={doc.id}
             style={homeStyles.doctorCard}
-            onPress={() => navigation.navigate('topdoctor')}
+            onPress={() => navigation.navigate('DoctorDetails', {
+              doctorId: String(doc.id),
+              doctorName: doc.name,
+              specialty: doc.specialty,
+              rating: String(doc.rating),
+              distance: doc.distance,
+              image: doc.image,
+              experience: '10 years',
+            })}
           >
             <Image source={{ uri: doc.image }} style={homeStyles.doctorImage} />
             <Text style={homeStyles.doctorName}>{doc.name}</Text>

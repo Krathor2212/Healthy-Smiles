@@ -1,15 +1,15 @@
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import React from 'react';
-import ArticlesScreen from '../Home/articles';
-import CartScreen from '../Home/CartScreen';
-import DrugDetailScreen from '../Home/DrugDetailScreen';
-import FindDoctorsScreen from '../Home/findDoctors';
 import Home from '../Home/Home';
-import PharmacyScreen from '../Home/PharmacyScreen';
-import TopDoctorScreen from '../Home/topdoctor';
 import { default as InvitesScreen } from '../InviteScreen';
 import LoginScreen from '../login/Login';
 import SignUpScreen from '../login/Signup';
+import ArticlesScreen from '../Pages/articles';
+import FindDoctorsScreen from '../Pages/Doctors/FindDoctors';
+import TopDoctorScreen from '../Pages/Doctors/topdoctor';
+import CartScreen from '../Pages/Pharmacy/CartScreen';
+import DrugDetailScreen from '../Pages/Pharmacy/DrugDetailScreen';
+import PharmacyScreen from '../Pages/Pharmacy/PharmacyScreen';
 
 const Stack = createStackNavigator();
 
@@ -19,14 +19,13 @@ export default function App() {
       initialRouteName="Intro"
       screenOptions={{
         headerShown: false,
-        // Use platform-appropriate smooth transitions
         ...TransitionPresets.SlideFromRightIOS,
       }}
     >
       <Stack.Screen
         name="Intro"
         component={InvitesScreen}
-        options={{ headerShown: false }} // Hide the header for the Intro1 page
+        options={{ headerShown: false }}
       />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
@@ -35,6 +34,7 @@ export default function App() {
       <Stack.Screen name="CartScreen" component={CartScreen} />
       <Stack.Screen name="PharmacyScreen" component={PharmacyScreen} />
       <Stack.Screen name="DrugDetailScreen" component={DrugDetailScreen} />
+      <Stack.Screen name="DoctorDetails" component={require('../Pages/DoctorDetails').default} />
       <Stack.Screen name="topdoctor" component={TopDoctorScreen} />
       <Stack.Screen name="FindDoctorsScreen" component={FindDoctorsScreen} />
     </Stack.Navigator>

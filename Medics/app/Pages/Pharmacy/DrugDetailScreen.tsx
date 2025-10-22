@@ -2,7 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -10,9 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import AppHeader from '../components/AppHeader';
-import type { RootStackParamList } from '../navigation/types';
-import { Product, useCartStore } from '../Pages/Pharmacy/stores/cartStores';
+import AppHeader from '../../components/AppHeader';
+import type { RootStackParamList } from '../../navigation/types';
+import { Product, useCartStore } from './stores/cartStores';
 
 export default function DrugDetailScreen() {
   const route = useRoute();

@@ -13,10 +13,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { RootStackParamList } from '../navigation/types';
-import { Product, useCartStore } from '../Pages/Pharmacy/stores/cartStores';
-import { pstyles } from '../Pages/styles/pharmaStyle';
-import { topDoctorStyles } from '../Pages/styles/topDoctorStyles';
+import type { RootStackParamList } from '../../navigation/types';
+import { pstyles } from '../styles/pharmaStyle';
+import { topDoctorStyles } from '../styles/topDoctorStyles';
+import { Product, useCartStore } from './stores/cartStores';
 
 export default function PharmacyScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();

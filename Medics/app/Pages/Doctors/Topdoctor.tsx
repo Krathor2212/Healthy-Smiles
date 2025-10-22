@@ -1,11 +1,12 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
 import { FlatList, Image, Pressable, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { RootStackParamList } from '../navigation/types';
-import { topDoctorStyles } from "./styles/topDoctorStyles";
+import AppHeader from '../../components/AppHeader';
+import type { RootStackParamList } from '../../navigation/types';
+import { topDoctorStyles } from "../styles/topDoctorStyles";
 
 type Doctor = {
   id: string;
@@ -63,27 +64,24 @@ export default function TopDoctorScreen() {
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  const handleDoctorPress = (doctorId: string) => {
-    setSelectedDoctor(doctorId);
-    console.log(`Doctor ${doctorId} selected`);
+  const handleDoctorPress = (doctor: Doctor) => {
+    setSelectedDoctor(doctor.id);
+    navigation.navigate('DoctorDetails', {
+      doctorId: doctor.id,
+      doctorName: doctor.name,
+      specialty: doctor.specialty,
+      rating: String(doctor.rating),
+      distance: doctor.distance,
+      image: doctor.image,
+      experience: '10 years',
+    });
   };
 
   const handleBackPress = () => navigation.goBack();
 
   return (
     <SafeAreaView style={topDoctorStyles.container} edges={["top"]}>
-      <Pressable style={topDoctorStyles.header} onPress={() => {}} accessible={false}>
-        <Pressable
-          onPress={handleBackPress}
-          android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
-          style={topDoctorStyles.backButton}
-          accessibilityLabel="Go back"
-        >
-          <Feather name="chevron-left" size={18} color="#1A202C" />
-        </Pressable>
-        <Text style={topDoctorStyles.title}>Top Doctor</Text>
-        <Text style={topDoctorStyles.placeholder} />
-      </Pressable>
+      <AppHeader title="Top Doctor" onBack={handleBackPress} />
 
       <FlatList
         data={doctors}
@@ -95,11 +93,11 @@ export default function TopDoctorScreen() {
               topDoctorStyles.card,
               selectedDoctor === item.id && topDoctorStyles.selectedCard
             ]}
-            onPress={() => handleDoctorPress(item.id)}
+            onPress={() => handleDoctorPress(item)}
             activeOpacity={0.85}
           >
             <Image source={{ uri: item.image }} style={topDoctorStyles.image} />
-            <Pressable style={topDoctorStyles.infoContainer} onPress={() => handleDoctorPress(item.id)}>
+            <Pressable style={topDoctorStyles.infoContainer} onPress={() => handleDoctorPress(item)}>
               <Text style={topDoctorStyles.name}>{item.name}</Text>
               <Text style={topDoctorStyles.specialty}>{item.specialty}</Text>
               <Pressable style={topDoctorStyles.detailsContainer} onPress={() => {}}>

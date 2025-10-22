@@ -1,19 +1,19 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
 import {
-    Image,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { RootStackParamList } from '../navigation/types';
-import { findDoctorsStyles } from "./styles/findDoctorsStyles";
+import AppHeader from '../../components/AppHeader';
+import type { RootStackParamList } from '../../navigation/types';
+import { findDoctorsStyles } from "../styles/findDoctorsStyles";
 
 
 interface Doctor {
@@ -235,19 +235,7 @@ export default function FindDoctorsScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <ScrollView style={findDoctorsStyles.container} showsVerticalScrollIndicator={false}>
-      {/* Header with Back Button */}
-      <View style={findDoctorsStyles.header}>
-        <Pressable
-          onPress={handleBackPress}
-          android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
-          style={findDoctorsStyles.backButton}
-          accessibilityLabel="Go back"
-        >
-          <Feather name="chevron-left" size={18} color="#1A202C" />
-        </Pressable>
-        <Text style={findDoctorsStyles.title}>Find Doctors</Text>
-        <Ionicons name="notifications-outline" size={24} color="black" />
-      </View>
+      <AppHeader title="Find Doctors" onBack={handleBackPress} right={<Ionicons name="notifications-outline" size={24} color="black" />} />
 
       {/* Search bar */}
       <View style={findDoctorsStyles.searchContainer}>
@@ -305,7 +293,10 @@ export default function FindDoctorsScreen() {
 
       <View style={findDoctorsStyles.doctorsList}>
         {currentDoctors.map((doctor) => (
-          <TouchableOpacity key={doctor.id} style={findDoctorsStyles.doctorListItem}>
+          <TouchableOpacity 
+          key={doctor.id} style={findDoctorsStyles.doctorListItem}
+          onPress={() => handleBookAppointment(doctor)}
+          >
             <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
             <View style={findDoctorsStyles.doctorInfo}>
               <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>
@@ -342,7 +333,7 @@ export default function FindDoctorsScreen() {
           <TouchableOpacity 
             key={doctor.id} 
             style={findDoctorsStyles.recentDoctorCard}
-            onPress={() => navigation.navigate('DoctorDetails' as any, {
+            onPress={() => navigation.navigate('DoctorDetails', {
               doctorId: doctor.id.toString(),
               doctorName: doctor.name,
               specialty: doctor.specialty,
