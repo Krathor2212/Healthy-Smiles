@@ -1,19 +1,19 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Image,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
-// SafeArea handled by AppHeader; use regular View here to avoid double padding
-import AppHeader from '../../components/AppHeader';
-import type { RootStackParamList } from '../../Navigation/types';
-import findDoctorsStyles from "../styles/findDoctorsStyles";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { RootStackParamList } from '../Navigation/types';
+import { findDoctorsStyles } from "../Pages/styles/findDoctorsStyles";
 
 
 interface Doctor {
@@ -233,9 +233,21 @@ export default function FindDoctorsScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <ScrollView style={findDoctorsStyles.container} showsVerticalScrollIndicator={false}>
-      <AppHeader title="Find Doctors" onBack={handleBackPress} right={<Ionicons name="notifications-outline" size={24} color="black" />} />
+      {/* Header with Back Button */}
+      <View style={findDoctorsStyles.header}>
+        <Pressable
+          onPress={handleBackPress}
+          android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+          style={findDoctorsStyles.backButton}
+          accessibilityLabel="Go back"
+        >
+          <Feather name="chevron-left" size={18} color="#1A202C" />
+        </Pressable>
+        <Text style={findDoctorsStyles.title}>Find Doctors</Text>
+        <Ionicons name="notifications-outline" size={24} color="black" />
+      </View>
 
       {/* Search bar */}
       <View style={findDoctorsStyles.searchContainer}>
@@ -293,10 +305,7 @@ export default function FindDoctorsScreen() {
 
       <View style={findDoctorsStyles.doctorsList}>
         {currentDoctors.map((doctor) => (
-          <TouchableOpacity 
-          key={doctor.id} style={findDoctorsStyles.doctorListItem}
-          onPress={() => handleBookAppointment(doctor)}
-          >
+          <TouchableOpacity key={doctor.id} style={findDoctorsStyles.doctorListItem}>
             <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
             <View style={findDoctorsStyles.doctorInfo}>
               <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>
@@ -333,7 +342,7 @@ export default function FindDoctorsScreen() {
           <TouchableOpacity 
             key={doctor.id} 
             style={findDoctorsStyles.recentDoctorCard}
-            onPress={() => navigation.navigate('DoctorDetails', {
+            onPress={() => navigation.navigate('DoctorDetails' as any, {
               doctorId: doctor.id.toString(),
               doctorName: doctor.name,
               specialty: doctor.specialty,
@@ -350,6 +359,6 @@ export default function FindDoctorsScreen() {
         ))}
       </ScrollView>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

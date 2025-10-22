@@ -2,10 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
-import { FlatList, Image, Pressable, Text, TouchableOpacity } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlatList, Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import AppHeader from '../../components/AppHeader';
-import type { RootStackParamList } from '../../navigation/types';
+import type { RootStackParamList } from '../../Navigation/types';
 import { topDoctorStyles } from "../styles/topDoctorStyles";
 
 type Doctor = {
@@ -80,7 +79,7 @@ export default function TopDoctorScreen() {
   const handleBackPress = () => navigation.goBack();
 
   return (
-    <SafeAreaView style={topDoctorStyles.container} edges={["top"]}>
+    <View style={topDoctorStyles.container}>
       <AppHeader title="Top Doctor" onBack={handleBackPress} />
 
       <FlatList
@@ -115,6 +114,6 @@ export default function TopDoctorScreen() {
         )}
         showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </View>
   );
 }

@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../Navigation/types';
 import { homeStyles } from "../Pages/styles/homeStyles";
 
 export default function HomeScreen() {

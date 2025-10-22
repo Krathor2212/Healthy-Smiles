@@ -1,22 +1,20 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Image,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import type { RootStackParamList } from '../navigation/types';
+import AppHeader from '../components/AppHeader';
+import type { RootStackParamList } from '../Navigation/types';
 import { Product, useCartStore } from '../Pages/Pharmacy/stores/cartStores';
-import { pstyles } from '../Pages/styles/pharmaStyle';
-import { topDoctorStyles } from '../Pages/styles/topDoctorStyles';
+import pstyles from '../Pages/styles/pharmaStyle';
 
 export default function PharmacyScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -89,23 +87,19 @@ export default function PharmacyScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+    <View style={{ flex: 1 }}>
       <ScrollView style={pstyles.container} showsVerticalScrollIndicator={false}>
+        <AppHeader title="Pharmacy" onBack={() => (navigation as any).goBack()} right={
+          <TouchableOpacity style={pstyles.cartIcon} onPress={handleCartPress}>
+            <Ionicons name="cart-outline" size={24} color="#000" />
+            {cartItemsCount > 0 && (
+              <View style={pstyles.cartBadge}>
+                <Text style={pstyles.cartBadgeText}>{cartItemsCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        } />
         <View style={pstyles.header}>
-          <View style={pstyles.headerTop}>
-            <Pressable onPress={() => (navigation as any).goBack()} style={topDoctorStyles.backButton} android_ripple={{ color: 'rgba(0,0,0,0.06)' }}>
-              <Feather name="chevron-left" size={18} color="#1A202C" />
-            </Pressable>
-            <Text style={pstyles.title}>Pharmacy</Text>
-            <TouchableOpacity style={pstyles.cartIcon} onPress={handleCartPress}>
-              <Ionicons name="cart-outline" size={24} color="#000" />
-              {cartItemsCount > 0 && (
-                <View style={pstyles.cartBadge}>
-                  <Text style={pstyles.cartBadgeText}>{cartItemsCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
           <TextInput style={pstyles.searchInput} placeholder="Search drugs, category..." placeholderTextColor="#999" value={searchQuery} onChangeText={setSearchQuery} />
         </View>
 
@@ -151,6 +145,6 @@ export default function PharmacyScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

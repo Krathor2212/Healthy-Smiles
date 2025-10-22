@@ -5,21 +5,21 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import Constants from 'expo-constants';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated, Keyboard, KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated, Keyboard, KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../Navigation/types';
 
 const SignUpScreen = () => {
   const backScale = useRef(new Animated.Value(1)).current;

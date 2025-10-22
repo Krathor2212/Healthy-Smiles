@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-export const findDoctorsStyles = StyleSheet.create({
+const findDoctorsStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
@@ -189,3 +189,5 @@ export const findDoctorsStyles = StyleSheet.create({
     marginBottom: 20,
   },
 });
+
+export default findDoctorsStyles;

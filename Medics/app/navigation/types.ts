@@ -10,7 +10,7 @@ export type RootStackParamList = {
   topdoctor: undefined;
   FindDoctorsScreen: undefined;
  
-  
+
   DoctorDetails: {
     doctorId: string;
     doctorName: string;
@@ -20,4 +20,17 @@ export type RootStackParamList = {
     image: string;
     experience: string;
   } | undefined;
+  Appointment: {
+    doctorName?: string;
+    specialty?: string;
+    rating?: string;
+    distance?: string;
+    image?: string;
+    date?: string;
+    time?: string;
+    reason?: string;
+  } | undefined;
 };
+
+// Default export to avoid expo-router treating this file as a route component
+export default {} as any;

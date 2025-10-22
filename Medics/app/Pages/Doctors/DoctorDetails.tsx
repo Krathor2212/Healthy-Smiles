@@ -3,16 +3,16 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Image,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
-import AppHeader from '../components/AppHeader';
-import type { RootStackParamList } from '../navigation/types';
-import { doctorDetailStyles } from "./styles/doctorDetailStyles";
+import AppHeader from '../../components/AppHeader';
+import type { RootStackParamList } from '../../Navigation/types';
+import { doctorDetailStyles } from "../styles/doctorDetailStyles";
 
 type DoctorDetailsRouteProp = RouteProp<RootStackParamList, 'DoctorDetails'>;
 export default function DoctorDetailsScreen() {

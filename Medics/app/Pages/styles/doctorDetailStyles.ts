@@ -206,3 +206,5 @@ export const doctorDetailStyles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+
+export default doctorDetailStyles;

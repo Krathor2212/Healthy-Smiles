@@ -9,3 +9,5 @@ export interface Article {
 }
 
 export type ArticlesData = Record<string, Article[]>;
+
+export default {} as any;

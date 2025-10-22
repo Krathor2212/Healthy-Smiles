@@ -4,9 +4,11 @@ import Home from '../Home/Home';
 import { default as InvitesScreen } from '../InviteScreen';
 import LoginScreen from '../login/Login';
 import SignUpScreen from '../login/Signup';
-import ArticlesScreen from '../Pages/articles';
+import ArticlesScreen from '../Pages/Articles';
+import AppointmentScreen from '../Pages/Doctors/Appointment';
+import DoctorDetailsScreen from '../Pages/Doctors/DoctorDetails';
 import FindDoctorsScreen from '../Pages/Doctors/FindDoctors';
-import TopDoctorScreen from '../Pages/Doctors/topdoctor';
+import TopDoctorScreen from '../Pages/Doctors/Topdoctor';
 import CartScreen from '../Pages/Pharmacy/CartScreen';
 import DrugDetailScreen from '../Pages/Pharmacy/DrugDetailScreen';
 import PharmacyScreen from '../Pages/Pharmacy/PharmacyScreen';
@@ -34,7 +36,8 @@ export default function App() {
       <Stack.Screen name="CartScreen" component={CartScreen} />
       <Stack.Screen name="PharmacyScreen" component={PharmacyScreen} />
       <Stack.Screen name="DrugDetailScreen" component={DrugDetailScreen} />
-      <Stack.Screen name="DoctorDetails" component={require('../Pages/DoctorDetails').default} />
+  <Stack.Screen name="DoctorDetails" component={DoctorDetailsScreen} />
+    <Stack.Screen name="Appointment" component={AppointmentScreen} />
       <Stack.Screen name="topdoctor" component={TopDoctorScreen} />
       <Stack.Screen name="FindDoctorsScreen" component={FindDoctorsScreen} />
     </Stack.Navigator>

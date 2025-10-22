@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-export const pstyles = StyleSheet.create({
+const pstyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -198,3 +198,5 @@ saleBadgeText: {
   fontWeight: 'bold',
 },
 });
+
+export default pstyles;
