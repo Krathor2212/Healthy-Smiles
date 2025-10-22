@@ -9,6 +9,8 @@ export type RootStackParamList = {
   DrugDetailScreen: { product?: string } | undefined;
   topdoctor: undefined;
   FindDoctorsScreen: undefined;
+  Profile: undefined;
+  EditProfile: undefined;
  
 
   DoctorDetails: {

@@ -165,7 +165,12 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={homeStyles.header}>
         <Text style={homeStyles.title}>Find your desire{"\n"}health solution</Text>
-        <Ionicons name="notifications-outline" size={24} color="black" />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="notifications-outline" size={24} color="black" />
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')} accessibilityLabel="Profile" style={{ marginLeft: 12 }}>
+            <Ionicons name="person-circle-outline" size={28} color="#1A202C" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search bar */}

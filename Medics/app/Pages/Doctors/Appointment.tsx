@@ -90,7 +90,7 @@ export default function AppointmentScreen() {
         contentContainerStyle={appointmentStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <AppHeader title="Appointment" onBack={() => navigation.goBack()} />
+  <AppHeader title="Appointment" onBack={() => navigation.goBack()} />
 
         {/* Divider */}
         <View style={appointmentStyles.divider} />

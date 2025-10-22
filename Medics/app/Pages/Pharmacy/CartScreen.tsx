@@ -62,7 +62,7 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <View style={styles.container}>
-        <AppHeader title="My Cart" onBack={() => navigation.goBack()} />
+  <AppHeader title="My Cart" onBack={() => navigation.goBack()} />
 
         <View style={styles.emptyCart}>
           <Ionicons name="cart-outline" size={80} color="#ccc" />
@@ -83,7 +83,7 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
-      <AppHeader title={`My Cart (${totalItems})`} onBack={() => navigation.goBack()} right={<TouchableOpacity onPress={clearCart}><Text style={styles.clearText}>Clear</Text></TouchableOpacity>} />
+  <AppHeader title={`My Cart (${totalItems})`} onBack={() => navigation.goBack()} right={<TouchableOpacity onPress={clearCart}><Text style={styles.clearText}>Clear</Text></TouchableOpacity>} />
 
       <FlatList
         data={items}

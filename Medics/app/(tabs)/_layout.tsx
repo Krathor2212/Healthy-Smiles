@@ -1,6 +1,8 @@
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import React from 'react';
+import EditProfileScreen from '../Home/EditProfile';
 import Home from '../Home/Home';
+import ProfileScreen from '../Home/Profile';
 import { default as InvitesScreen } from '../InviteScreen';
 import LoginScreen from '../Login/Login';
 import SignUpScreen from '../Login/Signup';
@@ -36,10 +38,12 @@ export default function App() {
       <Stack.Screen name="CartScreen" component={CartScreen} />
       <Stack.Screen name="PharmacyScreen" component={PharmacyScreen} />
       <Stack.Screen name="DrugDetailScreen" component={DrugDetailScreen} />
-  <Stack.Screen name="DoctorDetails" component={DoctorDetailsScreen} />
-    <Stack.Screen name="Appointment" component={AppointmentScreen} />
+      <Stack.Screen name="DoctorDetails" component={DoctorDetailsScreen} />
+      <Stack.Screen name="Appointment" component={AppointmentScreen} />
       <Stack.Screen name="topdoctor" component={TopDoctorScreen} />
       <Stack.Screen name="FindDoctorsScreen" component={FindDoctorsScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+  <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     </Stack.Navigator>
   );
 }

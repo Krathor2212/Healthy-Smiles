@@ -80,7 +80,7 @@ export default function TopDoctorScreen() {
 
   return (
     <View style={topDoctorStyles.container}>
-      <AppHeader title="Top Doctor" onBack={handleBackPress} />
+    <AppHeader title="Top Doctor" onBack={handleBackPress} />
 
       <FlatList
         data={doctors}

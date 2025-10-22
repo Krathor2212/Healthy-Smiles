@@ -292,7 +292,11 @@ export default function FindDoctorsScreen() {
 
       <View style={findDoctorsStyles.doctorsList}>
         {currentDoctors.map((doctor) => (
-          <TouchableOpacity key={doctor.id} style={findDoctorsStyles.doctorListItem}>
+          <TouchableOpacity 
+          key={doctor.id} 
+          style={findDoctorsStyles.doctorListItem}
+          onPress={() => handleBookAppointment(doctor)}
+          >
             <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
             <View style={findDoctorsStyles.doctorInfo}>
               <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>

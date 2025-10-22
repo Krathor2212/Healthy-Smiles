@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,9 +7,11 @@ type Props = {
   title: string;
   onBack?: () => void;
   right?: React.ReactNode;
+  /** Optional handler when the profile icon is pressed. If provided, a profile icon will render to the right. */
+  onProfilePress?: () => void;
 };
 
-export default function AppHeader({ title, onBack, right }: Props) {
+export default function AppHeader({ title, onBack, right, onProfilePress }: Props) {
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
       <View style={styles.header}>
@@ -22,7 +24,18 @@ export default function AppHeader({ title, onBack, right }: Props) {
           <Feather name="chevron-left" size={18} color="#1A202C" />
         </Pressable>
         <Text style={styles.title}>{title}</Text>
-        <View style={styles.right}>{right}</View>
+        <View style={styles.right}>
+          {right}
+          {onProfilePress ? (
+            <Ionicons
+              name="person-circle-outline"
+              size={28}
+              color="#1A202C"
+              onPress={onProfilePress}
+              style={styles.profileIcon}
+            />
+          ) : null}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -54,9 +67,14 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   right: {
-    width: 44,
+    minWidth: 44,
     height: 44,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+  }
+  ,
+  profileIcon: {
+    marginLeft: 8,
   }
 });

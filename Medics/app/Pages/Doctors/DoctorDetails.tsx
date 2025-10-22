@@ -205,7 +205,7 @@ export default function DoctorDetailsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <AppHeader title="Doctor Details" onBack={handleBackPress} right={<Ionicons name="notifications-outline" size={24} color="black" />} />
+    <AppHeader title="Doctor Details" onBack={handleBackPress} right={<Ionicons name="notifications-outline" size={24} color="black" />} />
       <ScrollView style={doctorDetailStyles.container} showsVerticalScrollIndicator={false}>
       {/* Doctor Profile */}
       <View style={doctorDetailStyles.doctorProfile}>
