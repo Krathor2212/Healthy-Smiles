@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ScrollView,
   Text,
@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import AppHeader from '../components/AppHeader';
 import { Article, ArticlesData } from "../Home/types/articles";
 import type { RootStackParamList } from '../Navigation/types';
-import { articlesStyles } from "./styles/articlesStyles";
+import { articlesStyles } from "../Pages/styles/articlesStyles";
 
+// Article data for different categories
 const articlesData: ArticlesData = {
   "Diseases": [
     {
@@ -628,7 +628,14 @@ export default function ArticlesScreen() {
   if (selectedArticle) {
     return (
       <View style={articlesStyles.detailContainer}>
-        <AppHeader title="Article" onBack={handleBackToArticles} />
+        {/* Header with Back Button */}
+        <View style={articlesStyles.header}>
+          <TouchableOpacity onPress={handleBackToArticles} style={articlesStyles.backButton}>
+            <Text style={articlesStyles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <Text style={articlesStyles.title}>Article</Text>
+          <View style={articlesStyles.placeholder} />
+        </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={articlesStyles.articleCategory}>
@@ -672,7 +679,14 @@ export default function ArticlesScreen() {
   // Main Articles List View
   return (
     <View style={articlesStyles.container}>
-      <AppHeader title="Articles" onBack={handleBackPress} />
+      {/* Header with Back Button */}
+      <View style={articlesStyles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={articlesStyles.backButton}>
+          <Text style={articlesStyles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        <Text style={articlesStyles.title}>Articles</Text>
+        <View style={articlesStyles.placeholder} />
+      </View>
 
       {/* Search Bar */}
       <View style={articlesStyles.searchContainer}>

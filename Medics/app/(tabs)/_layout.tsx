@@ -2,8 +2,8 @@ import { createStackNavigator, TransitionPresets } from '@react-navigation/stack
 import React from 'react';
 import Home from '../Home/Home';
 import { default as InvitesScreen } from '../InviteScreen';
-import LoginScreen from '../login/Login';
-import SignUpScreen from '../login/Signup';
+import LoginScreen from '../Login/Login';
+import SignUpScreen from '../Login/Signup';
 import ArticlesScreen from '../Pages/Articles';
 import AppointmentScreen from '../Pages/Doctors/Appointment';
 import DoctorDetailsScreen from '../Pages/Doctors/DoctorDetails';

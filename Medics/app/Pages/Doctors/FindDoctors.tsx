@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Image,
   ScrollView,
@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-// SafeArea handled by AppHeader; use regular View here to avoid double padding
 import AppHeader from '../../components/AppHeader';
 import type { RootStackParamList } from '../../Navigation/types';
 import findDoctorsStyles from "../styles/findDoctorsStyles";
@@ -293,10 +292,7 @@ export default function FindDoctorsScreen() {
 
       <View style={findDoctorsStyles.doctorsList}>
         {currentDoctors.map((doctor) => (
-          <TouchableOpacity 
-          key={doctor.id} style={findDoctorsStyles.doctorListItem}
-          onPress={() => handleBookAppointment(doctor)}
-          >
+          <TouchableOpacity key={doctor.id} style={findDoctorsStyles.doctorListItem}>
             <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
             <View style={findDoctorsStyles.doctorInfo}>
               <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>
@@ -333,7 +329,7 @@ export default function FindDoctorsScreen() {
           <TouchableOpacity 
             key={doctor.id} 
             style={findDoctorsStyles.recentDoctorCard}
-            onPress={() => navigation.navigate('DoctorDetails', {
+            onPress={() => navigation.navigate('DoctorDetails' as any, {
               doctorId: doctor.id.toString(),
               doctorName: doctor.name,
               specialty: doctor.specialty,
