@@ -38,7 +38,7 @@ interface StatItem {
 
 const menuItems: MenuItem[] = [
   { id: 0, iconName: 'create-outline', iconSet: 'Ionicons', title: 'Edit Profile' },
-  { id: 1, iconName: 'heart-outline', iconSet: 'Ionicons', title: 'My Saved' },
+  { id: 1, iconName: 'folder-outline', iconSet: 'Ionicons', title: 'Files' },
   { id: 2, iconName: 'clipboard-text-outline', iconSet: 'MaterialCommunityIcons', title: 'Appointment' },
   { id: 3, iconName: 'wallet-outline', iconSet: 'Ionicons', title: 'Payment Method' },
   { id: 4, iconName: 'chatbox-ellipses-outline', iconSet: 'Ionicons', title: 'FAQs' },
@@ -98,6 +98,11 @@ export default function ProfileScreen(): React.ReactElement {
       // Map titles to routes
       if (item.title === 'Edit Profile') {
         navigation.navigate('EditProfile');
+        return;
+      }
+
+      if (item.title === 'Files') {
+        navigation.navigate('MedicalFiles' as any);
         return;
       }
 

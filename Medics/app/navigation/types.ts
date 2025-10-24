@@ -11,6 +11,7 @@ export type RootStackParamList = {
   FindDoctorsScreen: undefined;
   Profile: undefined;
   EditProfile: undefined;
+  MedicalFiles: undefined;
  
 
   DoctorDetails: {
