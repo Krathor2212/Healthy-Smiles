@@ -4,13 +4,13 @@ const findDoctorsStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 16,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
+    
   },
   backButton: {
     padding: 8,
@@ -39,10 +39,10 @@ const findDoctorsStyles = StyleSheet.create({
     marginBottom: 20,
   },
   searchInput: {
-    flex: 1,
-    marginLeft: 8,
+    backgroundColor: '#f5f5f5',
+    padding: 15,
+    borderRadius: 10,
     fontSize: 16,
-    color: "#1F2937",
   },
   categoriesScroll: {
     marginBottom: 20,

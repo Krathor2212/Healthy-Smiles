@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   Image,
   ScrollView,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
@@ -232,123 +233,133 @@ export default function FindDoctorsScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={findDoctorsStyles.container} showsVerticalScrollIndicator={false}>
-      <AppHeader title="Find Doctors" onBack={handleBackPress} right={<Ionicons name="notifications-outline" size={24} color="black" />} />
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      <StatusBar translucent={false} backgroundColor="#fff" barStyle="dark-content" />
 
-      {/* Search bar */}
-      <View style={findDoctorsStyles.searchContainer}>
-        <Ionicons name="search-outline" size={20} color="#9CA3AF" />
-        <TextInput
-          placeholder="Find a doctor"
-          style={findDoctorsStyles.searchInput}
-          placeholderTextColor="#9CA3AF"
-        />
-      </View>
+      {/* AppHeader already wraps itself with SafeAreaView */}
+      <AppHeader
+        title="Find Doctors"
+        onBack={handleBackPress}
+        right={<Ionicons name="notifications-outline" size={24} color="black" />}
+      />
 
-      {/* Categories */}
-      <View style={findDoctorsStyles.sectionHeader}>
-        <Text style={findDoctorsStyles.sectionTitle}>Category</Text>
-      </View>
-      
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={findDoctorsStyles.categoriesScroll}
+      <ScrollView
+        style={findDoctorsStyles.container}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={findDoctorsStyles.categoriesRow}>
-          {categories.map((category, index) => (
+        {/* Search bar */}
+        <View style={[findDoctorsStyles.searchContainer, { paddingHorizontal: 0, marginTop: 8 }]}>
+          <TextInput
+            placeholder="Find a doctor"
+            style={[findDoctorsStyles.searchInput, { height: 44, borderRadius: 12, paddingVertical: 8 }]}
+            placeholderTextColor="#9CA3AF"
+          />
+        </View>
+
+        {/* Categories */}
+        <View style={findDoctorsStyles.sectionHeader}>
+          <Text style={findDoctorsStyles.sectionTitle}>Category</Text>
+        </View>
+        
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={findDoctorsStyles.categoriesScroll}
+        >
+          <View style={findDoctorsStyles.categoriesRow}>
+            {categories.map((category, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={[
+                  findDoctorsStyles.categoryButton,
+                  selectedCategory === category.name && findDoctorsStyles.selectedCategoryButton
+                ]}
+                onPress={() => setSelectedCategory(category.name)}
+              >
+                <Ionicons 
+                  name={category.icon as any} 
+                  size={24} 
+                  color={selectedCategory === category.name ? "#fff" : "#3CB179"} 
+                />
+                <Text style={[
+                  findDoctorsStyles.categoryButtonText,
+                  selectedCategory === category.name && findDoctorsStyles.selectedCategoryText
+                ]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Recommended Doctors for Selected Category */}
+        <View style={findDoctorsStyles.sectionHeader}>
+          <Text style={findDoctorsStyles.sectionTitle}>{selectedCategory} Doctors</Text>
+          <TouchableOpacity>
+            <Text style={findDoctorsStyles.seeAll}>See all</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={findDoctorsStyles.doctorsList}>
+          {currentDoctors.map((doctor) => (
             <TouchableOpacity 
-              key={index} 
-              style={[
-                findDoctorsStyles.categoryButton,
-                selectedCategory === category.name && findDoctorsStyles.selectedCategoryButton
-              ]}
-              onPress={() => setSelectedCategory(category.name)}
+            key={doctor.id} 
+            style={findDoctorsStyles.doctorListItem}
+            onPress={() => handleBookAppointment(doctor)}
             >
-              <Ionicons 
-                name={category.icon as any} 
-                size={24} 
-                color={selectedCategory === category.name ? "#fff" : "#3CB179"} 
-              />
-              <Text style={[
-                findDoctorsStyles.categoryButtonText,
-                selectedCategory === category.name && findDoctorsStyles.selectedCategoryText
-              ]}>
-                {category.name}
-              </Text>
+              <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
+              <View style={findDoctorsStyles.doctorInfo}>
+                <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>
+                <Text style={findDoctorsStyles.doctorSpecialty}>{doctor.specialty}</Text>
+                <Text style={findDoctorsStyles.doctorExperience}>{doctor.experience} experience</Text>
+                <View style={findDoctorsStyles.doctorInfoRow}>
+                  <Ionicons name="star" size={14} color="#3CB179" />
+                  <Text style={findDoctorsStyles.doctorRating}>{doctor.rating}</Text>
+                  <Ionicons name="location-outline" size={14} color="#6B7280" />
+                  <Text style={findDoctorsStyles.doctorDistance}>{doctor.distance}</Text>
+                </View>
+              </View>
+              <TouchableOpacity 
+                style={findDoctorsStyles.bookButton}
+                onPress={() => handleBookAppointment(doctor)}
+              >
+                <Text style={findDoctorsStyles.bookButtonText}>Book</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
 
-      {/* Recommended Doctors for Selected Category */}
-      <View style={findDoctorsStyles.sectionHeader}>
-        <Text style={findDoctorsStyles.sectionTitle}>{selectedCategory} Doctors</Text>
-        <TouchableOpacity>
-          <Text style={findDoctorsStyles.seeAll}>See all</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Recent Doctors */}
+        <View style={findDoctorsStyles.sectionHeader}>
+          <Text style={findDoctorsStyles.sectionTitle}>Your Recent Doctors</Text>
+        </View>
 
-      <View style={findDoctorsStyles.doctorsList}>
-        {currentDoctors.map((doctor) => (
-          <TouchableOpacity 
-          key={doctor.id} 
-          style={findDoctorsStyles.doctorListItem}
-          onPress={() => handleBookAppointment(doctor)}
-          >
-            <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
-            <View style={findDoctorsStyles.doctorInfo}>
-              <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>
-              <Text style={findDoctorsStyles.doctorSpecialty}>{doctor.specialty}</Text>
-              <Text style={findDoctorsStyles.doctorExperience}>{doctor.experience} experience</Text>
-              <View style={findDoctorsStyles.doctorInfoRow}>
-                <Ionicons name="star" size={14} color="#3CB179" />
-                <Text style={findDoctorsStyles.doctorRating}>{doctor.rating}</Text>
-                <Ionicons name="location-outline" size={14} color="#6B7280" />
-                <Text style={findDoctorsStyles.doctorDistance}>{doctor.distance}</Text>
-              </View>
-            </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={findDoctorsStyles.horizontalScroll}
+        >
+          {recentDoctors.map((doctor) => (
             <TouchableOpacity 
-              style={findDoctorsStyles.bookButton}
-              onPress={() => handleBookAppointment(doctor)}
+              key={doctor.id} 
+              style={findDoctorsStyles.recentDoctorCard}
+              onPress={() => navigation.navigate('DoctorDetails' as any, {
+                doctorId: doctor.id.toString(),
+                doctorName: doctor.name,
+                specialty: doctor.specialty,
+                rating: '4.7',
+                distance: '800m away',
+                image: doctor.image,
+                experience: '10 years',
+              })}
             >
-              <Text style={findDoctorsStyles.bookButtonText}>Book</Text>
+              <Image source={{ uri: doctor.image }} style={findDoctorsStyles.recentDoctorImage} />
+              <Text style={findDoctorsStyles.recentDoctorName}>{doctor.name}</Text>
+              <Text style={findDoctorsStyles.recentDoctorSpecialty}>{doctor.specialty}</Text>
             </TouchableOpacity>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Recent Doctors */}
-      <View style={findDoctorsStyles.sectionHeader}>
-        <Text style={findDoctorsStyles.sectionTitle}>Your Recent Doctors</Text>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={findDoctorsStyles.horizontalScroll}
-      >
-        {recentDoctors.map((doctor) => (
-          <TouchableOpacity 
-            key={doctor.id} 
-            style={findDoctorsStyles.recentDoctorCard}
-            onPress={() => navigation.navigate('DoctorDetails' as any, {
-              doctorId: doctor.id.toString(),
-              doctorName: doctor.name,
-              specialty: doctor.specialty,
-              rating: '4.7',
-              distance: '800m away',
-              image: doctor.image,
-              experience: '10 years',
-            })}
-          >
-            <Image source={{ uri: doctor.image }} style={findDoctorsStyles.recentDoctorImage} />
-            <Text style={findDoctorsStyles.recentDoctorName}>{doctor.name}</Text>
-            <Text style={findDoctorsStyles.recentDoctorSpecialty}>{doctor.specialty}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
       </ScrollView>
     </View>
   );
