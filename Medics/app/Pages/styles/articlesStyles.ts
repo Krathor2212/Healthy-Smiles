@@ -1,10 +1,13 @@
 import { StyleSheet } from "react-native";
 
 export const articlesStyles = StyleSheet.create({
+  // AppHeader already handles the top safe area; avoid additional top padding
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    paddingBottom: 20,
   },
   header: {
     flexDirection: "row",
@@ -132,7 +135,9 @@ export const articlesStyles = StyleSheet.create({
   detailContainer: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 20,
   },
   detailTitle: {
     fontSize: 24,

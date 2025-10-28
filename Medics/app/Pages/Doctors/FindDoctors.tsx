@@ -12,6 +12,7 @@ import {
   View
 } from "react-native";
 import AppHeader from '../../components/AppHeader';
+import JuicyTransitionWrapper from '../../components/JuicyTransitionWrapper';
 import type { RootStackParamList } from '../../Navigation/types';
 import findDoctorsStyles from "../styles/findDoctorsStyles";
 
@@ -302,32 +303,38 @@ export default function FindDoctorsScreen() {
         </View>
 
         <View style={findDoctorsStyles.doctorsList}>
-          {currentDoctors.map((doctor) => (
-            <TouchableOpacity 
-            key={doctor.id} 
-            style={findDoctorsStyles.doctorListItem}
-            onPress={() => handleBookAppointment(doctor)}
-            >
-              <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
-              <View style={findDoctorsStyles.doctorInfo}>
-                <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>
-                <Text style={findDoctorsStyles.doctorSpecialty}>{doctor.specialty}</Text>
-                <Text style={findDoctorsStyles.doctorExperience}>{doctor.experience} experience</Text>
-                <View style={findDoctorsStyles.doctorInfoRow}>
-                  <Ionicons name="star" size={14} color="#3CB179" />
-                  <Text style={findDoctorsStyles.doctorRating}>{doctor.rating}</Text>
-                  <Ionicons name="location-outline" size={14} color="#6B7280" />
-                  <Text style={findDoctorsStyles.doctorDistance}>{doctor.distance}</Text>
-                </View>
-              </View>
-              <TouchableOpacity 
-                style={findDoctorsStyles.bookButton}
-                onPress={() => handleBookAppointment(doctor)}
-              >
-                <Text style={findDoctorsStyles.bookButtonText}>Book</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+  {currentDoctors.map((doctor, index) => (
+    <JuicyTransitionWrapper
+      key={doctor.id}
+      id={`${doctor.id}-${index}`}
+      cardless
+      delayMultiplier={100} // tweak this for slower or faster stagger
+    >
+      <TouchableOpacity
+        style={findDoctorsStyles.doctorListItem}
+        onPress={() => handleBookAppointment(doctor)}
+      >
+        <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
+        <View style={findDoctorsStyles.doctorInfo}>
+          <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>
+          <Text style={findDoctorsStyles.doctorSpecialty}>{doctor.specialty}</Text>
+          <Text style={findDoctorsStyles.doctorExperience}>{doctor.experience} experience</Text>
+          <View style={findDoctorsStyles.doctorInfoRow}>
+            <Ionicons name="star" size={14} color="#3CB179" />
+            <Text style={findDoctorsStyles.doctorRating}>{doctor.rating}</Text>
+            <Ionicons name="location-outline" size={14} color="#6B7280" />
+            <Text style={findDoctorsStyles.doctorDistance}>{doctor.distance}</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={findDoctorsStyles.bookButton}
+          onPress={() => handleBookAppointment(doctor)}
+        >
+          <Text style={findDoctorsStyles.bookButtonText}>Book</Text>
+         </TouchableOpacity>
+          </TouchableOpacity>
+        </JuicyTransitionWrapper>
+        ))}
         </View>
 
         {/* Recent Doctors */}

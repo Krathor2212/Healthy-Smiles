@@ -3,11 +3,13 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { useMemo, useState } from "react";
 import {
   ScrollView,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import AppHeader from "../components/AppHeader";
 import { Article, ArticlesData } from "../Home/types/articles";
 import type { RootStackParamList } from '../Navigation/types';
 import { articlesStyles } from "../Pages/styles/articlesStyles";
@@ -628,14 +630,8 @@ export default function ArticlesScreen() {
   if (selectedArticle) {
     return (
       <View style={articlesStyles.detailContainer}>
-        {/* Header with Back Button */}
-        <View style={articlesStyles.header}>
-          <TouchableOpacity onPress={handleBackToArticles} style={articlesStyles.backButton}>
-            <Text style={articlesStyles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={articlesStyles.title}>Article</Text>
-          <View style={articlesStyles.placeholder} />
-        </View>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <AppHeader title="Article" onBack={handleBackToArticles} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={articlesStyles.articleCategory}>
@@ -679,31 +675,25 @@ export default function ArticlesScreen() {
   // Main Articles List View
   return (
     <View style={articlesStyles.container}>
-      {/* Header with Back Button */}
-      <View style={articlesStyles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={articlesStyles.backButton}>
-          <Text style={articlesStyles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={articlesStyles.title}>Articles</Text>
-        <View style={articlesStyles.placeholder} />
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <AppHeader title="Articles" onBack={handleBackPress} />
 
-      {/* Search Bar */}
-      <View style={articlesStyles.searchContainer}>
-        <TextInput
-          placeholder="Search articles, news..."
-          style={articlesStyles.searchInput}
-          placeholderTextColor="#9CA3AF"
-          value={searchText}
-          onChangeText={handleSearchChange}
-          returnKeyType="search"
-        />
-        {searchText ? (
-          <TouchableOpacity onPress={clearSearch}>
-            <Text style={{ color: '#9CA3AF', fontSize: 18 }}>×</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+       {/* Search Bar */}
+       <View style={articlesStyles.searchContainer}>
+         <TextInput
+           placeholder="Search articles, news..."
+           style={articlesStyles.searchInput}
+           placeholderTextColor="#9CA3AF"
+           value={searchText}
+           onChangeText={handleSearchChange}
+           returnKeyType="search"
+         />
+         {searchText ? (
+           <TouchableOpacity onPress={clearSearch}>
+             <Text style={{ color: '#9CA3AF', fontSize: 18 }}>×</Text>
+           </TouchableOpacity>
+         ) : null}
+       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Popular Articles Tags */}
