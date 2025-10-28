@@ -4,7 +4,6 @@ import EditProfileScreen from '../Home/EditProfile';
 import Home from '../Home/Home';
 import MedicalFilesScreen from '../Home/MedicalFiles';
 import ProfileScreen from '../Home/Profile';
-import { default as InvitesScreen } from '../InviteScreen';
 import LoginScreen from '../Login/Login';
 import SignUpScreen from '../Login/Signup';
 import ArticlesScreen from '../Pages/Articles';
@@ -27,11 +26,11 @@ export default function App() {
         ...TransitionPresets.SlideFromRightIOS,
       }}
     >
-      <Stack.Screen
+      {/* <Stack.Screen
         name="Intro"
         component={InvitesScreen}
         options={{ headerShown: false }}
-      />
+      /> */}
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="Home" component={Home} />
