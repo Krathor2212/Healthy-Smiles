@@ -14,8 +14,8 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import AppHeader from "../components/AppHeader";
-import { RootStackParamList } from "../navigation/types";
+import AppHeader from "../../components/AppHeader";
+import { RootStackParamList } from "../../Navigation/types";
 
 const STORAGE_KEY = "MEDICAL_FILES";
 

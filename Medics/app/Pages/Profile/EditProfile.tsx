@@ -6,8 +6,8 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import AppHeader from '../components/AppHeader';
-import type { RootStackParamList } from '../navigation/types';
+import AppHeader from '../../components/AppHeader';
+import type { RootStackParamList } from '../../Navigation/types';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -17,8 +17,7 @@ type UserProfile = {
   phone: string;
   avatar?: string;
   stats?: {
-    heartRate?: string;
-    calories?: string;
+    height?: string;
     weight?: string;
   };
 };
@@ -39,7 +38,7 @@ export default function EditProfileScreen() {
           setProfile((p) => ({ ...p, ...parsed }));
         } else {
           // sensible defaults
-          setProfile({ name: 'Amelia Renata', email: 'amelia@example.com', phone: '+1 555 123 4567', stats: { heartRate: '215bpm', calories: '756cal', weight: '103lbs' } });
+          setProfile({ name: 'Amelia Renata', email: 'amelia@example.com', phone: '+1 555 123 4567', stats: { height: '5\'6"', weight: '103lbs' } });
         }
       } catch (e) {
         console.warn('Failed to load profile', e);
@@ -119,11 +118,8 @@ export default function EditProfileScreen() {
           <TextInput style={styles.input} value={profile.phone} onChangeText={(t) => setProfile((p) => ({ ...p, phone: t }))} placeholder="Phone" keyboardType="phone-pad" />
 
           <Text style={[styles.sectionTitle, { marginTop: 6 }]}>Health details</Text>
-          <Text style={styles.label}>Heart rate</Text>
-          <TextInput style={styles.input} value={profile.stats?.heartRate ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, stats: { ...(p.stats || {}), heartRate: t } }))} placeholder="e.g. 72bpm" />
-
-          <Text style={styles.label}>Calories</Text>
-          <TextInput style={styles.input} value={profile.stats?.calories ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, stats: { ...(p.stats || {}), calories: t } }))} placeholder="e.g. 756cal" />
+          <Text style={styles.label}>Height</Text>
+          <TextInput style={styles.input} value={profile.stats?.height ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, stats: { ...(p.stats || {}), height: t } }))} placeholder="e.g. 5'6&quot; or 170cm" />
 
           <Text style={styles.label}>Weight</Text>
           <TextInput style={styles.input} value={profile.stats?.weight ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, stats: { ...(p.stats || {}), weight: t } }))} placeholder="e.g. 70kg" />

@@ -22,7 +22,7 @@ export default function BottomNavigation() {
       setActiveTab('Home');
     } else if (routeName === 'AllChatsScreen' || routeName === 'IndividualChatScreen') {
       setActiveTab('Chat');
-    } else if (routeName === 'Profile' || routeName === 'EditProfile' || routeName === 'MedicalFiles') {
+    } else if (routeName === 'Profile' || routeName === 'EditProfile' || routeName === 'MedicalFiles' || routeName === 'PaymentHistory') {
       setActiveTab('Profile');
     }
     // Keep the previously active tab for other screens

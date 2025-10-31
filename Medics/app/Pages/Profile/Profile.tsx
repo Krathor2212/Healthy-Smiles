@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { RootStackParamList } from '../Navigation/types';
+import type { RootStackParamList } from '../../Navigation/types';
 
 // --- Types and Constants ---
 
@@ -40,15 +40,14 @@ const menuItems: MenuItem[] = [
   { id: 0, iconName: 'create-outline', iconSet: 'Ionicons', title: 'Edit Profile' },
   { id: 1, iconName: 'folder-outline', iconSet: 'Ionicons', title: 'Files' },
   { id: 2, iconName: 'clipboard-text-outline', iconSet: 'MaterialCommunityIcons', title: 'Appointment' },
-  { id: 3, iconName: 'wallet-outline', iconSet: 'Ionicons', title: 'Payment Method' },
+  { id: 3, iconName: 'wallet-outline', iconSet: 'Ionicons', title: 'Payment History' },
   { id: 4, iconName: 'chatbox-ellipses-outline', iconSet: 'Ionicons', title: 'FAQs' },
   { id: 5, iconName: 'log-out-outline', iconSet: 'Ionicons', title: 'Logout', isLogout: true },
 ];
 
 const statItems: StatItem[] = [
-  { id: 1, iconName: 'heart-pulse', value: '215bpm', label: 'Heart rate' },
-  { id: 2, iconName: 'fire', value: '756cal', label: 'Calories' },
-  { id: 3, iconName: 'weight-lifter', value: '103lbs', label: 'Weight' },
+  { id: 1, iconName: 'human-male-height', value: '5\'6"', label: 'Height' },
+  { id: 2, iconName: 'weight-lifter', value: '103lbs', label: 'Weight' },
 ];
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
@@ -117,6 +116,14 @@ export default function ProfileScreen(): React.ReactElement {
         return;
       }
 
+      if (item.title === 'Payment History') {
+        navigation.navigate('PaymentHistory' as any);
+        return;
+      }
+      if (item.title === 'FAQs') {
+        navigation.navigate('FAQs' as any);
+        return;
+      }
       
 
       // fallback: log
@@ -154,11 +161,9 @@ export default function ProfileScreen(): React.ReactElement {
             if (stats) {
               return (
                 <>
-                  <StatBlock item={{ id: 1, iconName: 'heart-pulse', value: stats.heartRate || '', label: 'Heart rate' }} />
+                  <StatBlock item={{ id: 1, iconName: 'ruler', value: stats.height || '', label: 'Height' }} />
                   <View style={styles.statDivider} />
-                  <StatBlock item={{ id: 2, iconName: 'fire', value: stats.calories || '', label: 'Calories' }} />
-                  <View style={styles.statDivider} />
-                  <StatBlock item={{ id: 3, iconName: 'weight-lifter', value: stats.weight || '', label: 'Weight' }} />
+                  <StatBlock item={{ id: 2, iconName: 'weight-lifter', value: stats.weight || '', label: 'Weight' }} />
                 </>
               );
             }

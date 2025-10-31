@@ -1,10 +1,11 @@
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import React from 'react';
 import AuthOptions from '../AuthOptions';
-import EditProfileScreen from '../Home/EditProfile';
+import EditProfileScreen from '../Pages/Profile/EditProfile';
 import Home from '../Home/Home';
-import MedicalFilesScreen from '../Home/MedicalFiles';
-import ProfileScreen from '../Home/Profile';
+import MedicalFilesScreen from '../Pages/Profile/MedicalFiles';
+import ProfileScreen from '../Pages/Profile/Profile';
+import PaymentHistoryScreen from '../Pages/Profile/PaymentHistory';
 import LoginScreen from '../Login/Login';
 import SignUpScreen from '../Login/Signup';
 import ArticlesScreen from '../Pages/articles';
@@ -21,6 +22,7 @@ import HospitalDetails from '../Pages/Hospitals/HospitalDetails';
 import AppointmentsScheduleScreen from '../Pages/Hospitals/AppointmentsScheduleScreen';
 import AllChatsScreen from '../Pages/Chat/AllChatsScreen';
 import IndividualChatScreen from '../Pages/Chat/IndividualChatScreen';
+import FAQsScreen from '../Pages/Profile/FAQScreen';
 import ScreenWrapper from '../components/ScreenWrapper';
 
 const Stack = createStackNavigator();
@@ -77,6 +79,8 @@ export default function App() {
       <Stack.Screen name="Profile" component={withBottomNav(ProfileScreen)} />
       <Stack.Screen name="MedicalFiles" component={withBottomNav(MedicalFilesScreen)} />
       <Stack.Screen name="EditProfile" component={withBottomNav(EditProfileScreen)} />
+  <Stack.Screen name="FAQs" component={withBottomNav(FAQsScreen)} />
+      <Stack.Screen name="PaymentHistory" component={withBottomNav(PaymentHistoryScreen)} />
       <Stack.Screen name="FindHospitals" component={withBottomNav(FindHospitals)} />
       <Stack.Screen name="HospitalDetails" component={withBottomNav(HospitalDetails)} />
       <Stack.Screen name="Appointments" component={withBottomNav(AppointmentsScheduleScreen)} />
