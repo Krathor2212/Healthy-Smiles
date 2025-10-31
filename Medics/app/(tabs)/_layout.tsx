@@ -24,6 +24,7 @@ import AllChatsScreen from '../Pages/Chat/AllChatsScreen';
 import IndividualChatScreen from '../Pages/Chat/IndividualChatScreen';
 import FAQsScreen from '../Pages/Profile/FAQScreen';
 import NotificationsScreen from '../Notifications';
+import InsuranceScreen from '../Home/Insurance';
 import ScreenWrapper from '../components/ScreenWrapper';
 
 const Stack = createStackNavigator();
@@ -83,6 +84,7 @@ export default function App() {
       <Stack.Screen name="FAQs" component={withBottomNav(FAQsScreen)} />
       <Stack.Screen name="PaymentHistory" component={withBottomNav(PaymentHistoryScreen)} />
       <Stack.Screen name="Notifications" component={withBottomNav(NotificationsScreen)} />
+      <Stack.Screen name="Insurance" component={withBottomNav(InsuranceScreen)} />
       <Stack.Screen name="FindHospitals" component={withBottomNav(FindHospitals)} />
       <Stack.Screen name="HospitalDetails" component={withBottomNav(HospitalDetails)} />
       <Stack.Screen name="Appointments" component={withBottomNav(AppointmentsScheduleScreen)} />

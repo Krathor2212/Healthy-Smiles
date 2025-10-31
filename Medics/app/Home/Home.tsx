@@ -208,7 +208,10 @@ export default function HomeScreen() {
           <Text style={homeStyles.bannerTitle}>
             Early protection for your family health
           </Text>
-          <TouchableOpacity style={homeStyles.learnMoreButton}>
+          <TouchableOpacity 
+            style={homeStyles.learnMoreButton}
+            onPress={() => navigation.navigate('Insurance')}
+          >
             <Text style={homeStyles.learnMoreText}>Learn more</Text>
           </TouchableOpacity>
         </View>

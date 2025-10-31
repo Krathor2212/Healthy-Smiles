@@ -57,7 +57,12 @@ const BORDER_COLOR = '#E5E7EB';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+// Enable LayoutAnimation on Android (only for older architecture)
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental &&
+  !(global as any).nativeFabricUIManager
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
