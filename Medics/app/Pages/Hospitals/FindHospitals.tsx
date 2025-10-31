@@ -111,7 +111,7 @@ export default function FindHospitals() {
   const initialRegion = {
     latitude: 13.0067,    // Guindy, Chennai latitude
     longitude: 80.2206,   // Guindy, Chennai longitude
-    latitudeDelta: 0.0001,  // Zoom level (smaller = more zoomed in)
+    latitudeDelta: 0.0005,  // Zoom level (smaller = more zoomed in)
     longitudeDelta: 0.01,
   };
 

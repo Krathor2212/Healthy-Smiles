@@ -18,8 +18,28 @@ import PharmacyScreen from '../Pages/Pharmacy/PharmacyScreen';
 import InvitesScreen from '../InviteScreen';
 import FindHospitals from '../Pages/Hospitals/FindHospitals';
 import HospitalDetails from '../Pages/Hospitals/HospitalDetails';
+import AppointmentsScheduleScreen from '../Pages/Hospitals/AppointmentsScheduleScreen';
+import ScreenWrapper from '../components/ScreenWrapper';
 
 const Stack = createStackNavigator();
+
+// Wrapper components with BottomNavigation
+const withBottomNav = (Component: React.ComponentType<any>) => {
+  return (props: any) => (
+    <ScreenWrapper showBottomNav={true}>
+      <Component {...props} />
+    </ScreenWrapper>
+  );
+};
+
+// Wrapper for screens without BottomNavigation
+const withoutBottomNav = (Component: React.ComponentType<any>) => {
+  return (props: any) => (
+    <ScreenWrapper showBottomNav={false}>
+      <Component {...props} />
+    </ScreenWrapper>
+  );
+};
 
 export default function App() {
   return (
@@ -30,28 +50,32 @@ export default function App() {
         ...TransitionPresets.SlideFromRightIOS,
       }}
     >
+      {/* Auth screens - NO BottomNavigation */}
       <Stack.Screen
         name="Intro"
-        component={InvitesScreen}
+        component={withoutBottomNav(InvitesScreen)}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="AuthOptions" component={AuthOptions} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="SignUp" component={SignUpScreen} />
-      <Stack.Screen name="Home" component={Home} />
-      <Stack.Screen name="articles" component={ArticlesScreen} />
-      <Stack.Screen name="CartScreen" component={CartScreen} />
-      <Stack.Screen name="PharmacyScreen" component={PharmacyScreen} />
-      <Stack.Screen name="DrugDetailScreen" component={DrugDetailScreen} />
-      <Stack.Screen name="DoctorDetails" component={DoctorDetailsScreen} />
-      <Stack.Screen name="Appointment" component={AppointmentScreen} />
-      <Stack.Screen name="topdoctor" component={TopDoctorScreen} />
-      <Stack.Screen name="FindDoctorsScreen" component={FindDoctorsScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="MedicalFiles" component={MedicalFilesScreen} />
-      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-      <Stack.Screen name="FindHospitals" component={FindHospitals} />
-      <Stack.Screen name="HospitalDetails" component={HospitalDetails} />
+      <Stack.Screen name="AuthOptions" component={withoutBottomNav(AuthOptions)} />
+      <Stack.Screen name="Login" component={withoutBottomNav(LoginScreen)} />
+      <Stack.Screen name="SignUp" component={withoutBottomNav(SignUpScreen)} />
+      
+      {/* Main app screens - WITH BottomNavigation */}
+      <Stack.Screen name="Home" component={withBottomNav(Home)} />
+      <Stack.Screen name="articles" component={withBottomNav(ArticlesScreen)} />
+      <Stack.Screen name="CartScreen" component={withBottomNav(CartScreen)} />
+      <Stack.Screen name="PharmacyScreen" component={withBottomNav(PharmacyScreen)} />
+      <Stack.Screen name="DrugDetailScreen" component={withBottomNav(DrugDetailScreen)} />
+      <Stack.Screen name="DoctorDetails" component={withBottomNav(DoctorDetailsScreen)} />
+      <Stack.Screen name="Appointment" component={withBottomNav(AppointmentScreen)} />
+      <Stack.Screen name="topdoctor" component={withBottomNav(TopDoctorScreen)} />
+      <Stack.Screen name="FindDoctorsScreen" component={withBottomNav(FindDoctorsScreen)} />
+      <Stack.Screen name="Profile" component={withBottomNav(ProfileScreen)} />
+      <Stack.Screen name="MedicalFiles" component={withBottomNav(MedicalFilesScreen)} />
+      <Stack.Screen name="EditProfile" component={withBottomNav(EditProfileScreen)} />
+      <Stack.Screen name="FindHospitals" component={withBottomNav(FindHospitals)} />
+      <Stack.Screen name="HospitalDetails" component={withBottomNav(HospitalDetails)} />
+      <Stack.Screen name="Appointments" component={withBottomNav(AppointmentsScheduleScreen)} />
     </Stack.Navigator>
   );
 }

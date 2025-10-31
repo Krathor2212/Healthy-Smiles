@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../Navigation/types';
 import { homeStyles } from "../Pages/styles/homeStyles";
 
 export default function HomeScreen() {
@@ -150,10 +150,10 @@ export default function HomeScreen() {
         navigation.navigate('FindDoctorsScreen');
         break;
       case 'Hospital':
-        navigation.navigate('FindHospitals');
+        (navigation as any).navigate('FindHospitals');
         break;
-      case 'Ambulance':
-        // Add ambulance navigation if needed
+      case 'Schedule':
+        navigation.navigate('Appointments' as keyof RootStackParamList);
         break;
       default:
         break;
@@ -161,17 +161,15 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={homeStyles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={homeStyles.header}>
-        <Text style={homeStyles.title}>Find your desire{"\n"}health solution</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="notifications-outline" size={24} color="black" />
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')} accessibilityLabel="Profile" style={{ marginLeft: 12 }}>
-            <Ionicons name="person-circle-outline" size={28} color="#1A202C" />
-          </TouchableOpacity>
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScrollView style={homeStyles.container} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={homeStyles.header}>
+          <Text style={homeStyles.title}>Find your desire{"\n"}health solution</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="notifications-outline" size={24} color="black" />
+          </View>
         </View>
-      </View>
 
       {/* Search bar */}
       <View style={homeStyles.searchContainer}>
@@ -189,7 +187,7 @@ export default function HomeScreen() {
           { icon: "medkit-outline", label: "Doctor" },
           { icon: "bag-handle-outline", label: "Pharmacy" },
           { icon: "business-outline", label: "Hospital" },
-          { icon: "car-outline", label: "Ambulance" },
+          { icon: "calendar-outline", label: "Schedule" },
         ].map((item, index) => (
           <Pressable
             key={index}
@@ -299,6 +297,7 @@ export default function HomeScreen() {
           </View>
         )}
       </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
