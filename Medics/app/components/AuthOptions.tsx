@@ -87,7 +87,7 @@ const AuthOptions: React.FC<AuthOptionsProps> = ({ navigation }) => {
       <View style={styles.middleSection}>
         <View style={styles.appIconContainer}>
           <Image
-            source={require('../assets/logo.png')}
+            source={require('../../assets/logo.png')}
             style={styles.appIcon}
             resizeMode="contain"
           />

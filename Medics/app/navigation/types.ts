@@ -21,6 +21,7 @@ export type RootStackParamList = {
   MedicalFiles: undefined;
   PaymentHistory: undefined;
   FAQs: undefined;
+  Notifications: undefined;
  
 
   DoctorDetails: {

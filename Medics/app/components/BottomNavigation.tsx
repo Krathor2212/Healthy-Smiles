@@ -18,11 +18,11 @@ export default function BottomNavigation() {
     const routeName = route.name;
     
     // Map route names to tab names
-    if (routeName === 'Home') {
+    if (routeName === 'Home' || routeName === 'Notifications') {
       setActiveTab('Home');
     } else if (routeName === 'AllChatsScreen' || routeName === 'IndividualChatScreen') {
       setActiveTab('Chat');
-    } else if (routeName === 'Profile' || routeName === 'EditProfile' || routeName === 'MedicalFiles' || routeName === 'PaymentHistory') {
+    } else if (routeName === 'Profile' || routeName === 'EditProfile' || routeName === 'MedicalFiles' || routeName === 'PaymentHistory' || routeName === 'FAQs') {
       setActiveTab('Profile');
     }
     // Keep the previously active tab for other screens

@@ -166,9 +166,9 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={homeStyles.header}>
           <Text style={homeStyles.title}>Find your desire{"\n"}health solution</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => navigation.navigate('Notifications')} activeOpacity={0.7}>
             <Ionicons name="notifications-outline" size={24} color="black" />
-          </View>
+          </TouchableOpacity>
         </View>
 
       {/* Search bar */}

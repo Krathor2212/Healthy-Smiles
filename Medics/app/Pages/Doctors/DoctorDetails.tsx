@@ -11,7 +11,7 @@ import {
   View
 } from "react-native";
 import AppHeader from '../../components/AppHeader';
-import type { RootStackParamList } from '../../navigation/types';
+import type { RootStackParamList } from '../../Navigation/types';
 import { doctorDetailStyles } from "../styles/doctorDetailStyles";
 
 type DoctorDetailsRouteProp = RouteProp<RootStackParamList, 'DoctorDetails'>;
@@ -205,7 +205,12 @@ export default function DoctorDetailsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-    <AppHeader title="Doctor Details" onBack={handleBackPress} right={<Ionicons name="notifications-outline" size={24} color="black" />} />
+    <AppHeader 
+      title="Doctor Details" 
+      onBack={handleBackPress} 
+      right={<Ionicons name="notifications-outline" size={24} color="black" />}
+      onRightPress={() => navigation.navigate('Notifications')}
+    />
       <ScrollView style={doctorDetailStyles.container} showsVerticalScrollIndicator={false}>
       {/* Doctor Profile */}
       <View style={doctorDetailStyles.doctorProfile}>

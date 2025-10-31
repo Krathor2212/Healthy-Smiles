@@ -123,6 +123,7 @@ export default function FindHospitals() {
         title="Find Hospitals"
         onBack={handleBackPress}
         right={<Ionicons name="notifications-outline" size={24} color="black" />}
+        onRightPress={() => navigation.navigate('Notifications')}
       />
 
       <ScrollView 

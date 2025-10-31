@@ -7,11 +7,12 @@ type Props = {
   title: string;
   onBack?: () => void;
   right?: React.ReactNode;
+  onRightPress?: () => void;
   /** Optional handler when the profile icon is pressed. If provided, a profile icon will render to the right. */
   onProfilePress?: () => void;
 };
 
-export default function AppHeader({ title, onBack, right, onProfilePress }: Props) {
+export default function AppHeader({ title, onBack, right, onRightPress, onProfilePress }: Props) {
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
       <View style={styles.header}>
@@ -25,7 +26,11 @@ export default function AppHeader({ title, onBack, right, onProfilePress }: Prop
         </Pressable>
         <Text style={styles.title}>{title}</Text>
         <View style={styles.right}>
-          {right}
+          {right && onRightPress ? (
+            <Pressable onPress={onRightPress} android_ripple={{ color: 'rgba(0,0,0,0.06)' }} style={styles.rightButton}>
+              {right}
+            </Pressable>
+          ) : right}
           {onProfilePress ? (
             <Ionicons
               name="person-circle-outline"
@@ -72,9 +77,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-  }
-  ,
+  },
+  rightButton: {
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   profileIcon: {
     marginLeft: 8,
-  }
+  },
 });

@@ -242,6 +242,7 @@ export default function FindDoctorsScreen() {
         title="Find Doctors"
         onBack={handleBackPress}
         right={<Ionicons name="notifications-outline" size={24} color="black" />}
+        onRightPress={() => navigation.navigate('Notifications')}
       />
 
       <ScrollView

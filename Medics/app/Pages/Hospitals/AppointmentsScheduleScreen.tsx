@@ -198,8 +198,12 @@ export default function AppointmentsScheduleScreen() {
     <View style={scheduleStyles.container}>
       <ScrollView style={scheduleStyles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <AppHeader title="Appointments" onBack={handleBack} 
-        right={<Ionicons name="notifications-outline" size={24} color="black" />} />
+        <AppHeader 
+          title="Appointments" 
+          onBack={handleBack} 
+          right={<Ionicons name="notifications-outline" size={24} color="black" />}
+          onRightPress={() => navigation.navigate('Notifications')}
+        />
 
         {/* Tab Navigation */}
         <View style={scheduleStyles.tabContainer}>

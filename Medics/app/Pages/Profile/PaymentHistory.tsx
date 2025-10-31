@@ -165,7 +165,12 @@ const PaymentHistoryScreen: React.FC = () => {
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={BG_LIGHT_GRAY} />
-      <AppHeader title="Payment History" onBack={handleBackPress} />
+      <AppHeader 
+        title="Payment History" 
+        onBack={handleBackPress}
+        right={<Feather name="bell" size={24} color={TEXT_PRIMARY} />}
+        onRightPress={() => navigation.navigate('Notifications')}
+      />
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
