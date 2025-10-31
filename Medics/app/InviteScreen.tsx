@@ -49,8 +49,8 @@ const InvitesScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
     };
 
     const handleGetStarted = () => {
-        // Assumes a route named 'Login' exists; change if your route is different
-        navigation.navigate('Login');
+        // Navigate to the new AuthOptions screen
+        navigation.navigate('AuthOptions');
     };
 
     // This effect cycles through the images for the background every 5 seconds
