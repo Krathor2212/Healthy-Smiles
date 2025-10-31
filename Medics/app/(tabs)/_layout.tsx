@@ -19,6 +19,8 @@ import InvitesScreen from '../InviteScreen';
 import FindHospitals from '../Pages/Hospitals/FindHospitals';
 import HospitalDetails from '../Pages/Hospitals/HospitalDetails';
 import AppointmentsScheduleScreen from '../Pages/Hospitals/AppointmentsScheduleScreen';
+import AllChatsScreen from '../Pages/Chat/AllChatsScreen';
+import IndividualChatScreen from '../Pages/Chat/IndividualChatScreen';
 import ScreenWrapper from '../components/ScreenWrapper';
 
 const Stack = createStackNavigator();
@@ -62,6 +64,8 @@ export default function App() {
       
       {/* Main app screens - WITH BottomNavigation */}
       <Stack.Screen name="Home" component={withBottomNav(Home)} />
+      <Stack.Screen name="AllChatsScreen" component={withBottomNav(AllChatsScreen)} />
+      <Stack.Screen name="IndividualChatScreen" component={withBottomNav(IndividualChatScreen)} />
       <Stack.Screen name="articles" component={withBottomNav(ArticlesScreen)} />
       <Stack.Screen name="CartScreen" component={withBottomNav(CartScreen)} />
       <Stack.Screen name="PharmacyScreen" component={withBottomNav(PharmacyScreen)} />

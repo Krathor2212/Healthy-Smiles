@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../Navigation/types';
 
 // --- Types and Constants ---
 
@@ -113,9 +113,11 @@ export default function ProfileScreen(): React.ReactElement {
       }
 
       if (item.title === 'Appointment') {
-        navigation.navigate('Appointment' as any);
+        navigation.navigate('Appointments' as any);
         return;
       }
+
+      
 
       // fallback: log
       console.log('menu press:', item.title);

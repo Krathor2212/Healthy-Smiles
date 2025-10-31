@@ -3,6 +3,13 @@ export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
   Home: undefined;
+  AllChatsScreen: undefined;
+  IndividualChatScreen: {
+    doctorId: string;
+    doctorName: string;
+    doctorSpeciality: string;
+    doctorAvatar: string;
+  } | undefined;
   articles: undefined;
   CartScreen: undefined;
   PharmacyScreen: undefined;

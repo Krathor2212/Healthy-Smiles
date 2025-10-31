@@ -20,6 +20,8 @@ export default function BottomNavigation() {
     // Map route names to tab names
     if (routeName === 'Home') {
       setActiveTab('Home');
+    } else if (routeName === 'AllChatsScreen' || routeName === 'IndividualChatScreen') {
+      setActiveTab('Chat');
     } else if (routeName === 'Profile' || routeName === 'EditProfile' || routeName === 'MedicalFiles') {
       setActiveTab('Profile');
     }
@@ -37,7 +39,7 @@ export default function BottomNavigation() {
       name: "Chat",
       icon: "chatbubble-outline",
       activeIcon: "chatbubble",
-      screen: "Home" as keyof RootStackParamList, // Chat screen not in navigation yet
+      screen: "AllChatsScreen" as keyof RootStackParamList,
     },
     {
       name: "Profile",

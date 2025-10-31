@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import AppHeader from '../../components/AppHeader';
 import JuicyTransitionWrapper from '../../components/JuicyTransitionWrapper';
-import type { RootStackParamList } from '../../navigation/types';
+import type { RootStackParamList } from '../../Navigation/types';
 import findDoctorsStyles from "../styles/findDoctorsStyles";
 
 
