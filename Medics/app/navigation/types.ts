@@ -23,6 +23,15 @@ export type RootStackParamList = {
     image: string;
     experience: string;
   } | undefined;
+  HospitalDetails: {
+    hospitalId: string;
+    hospitalName: string;
+    speciality: string;
+    rating: string;
+    distance: string;
+    latitude: number;
+    longitude: number;
+  } | undefined;
   Appointment: {
     doctorName?: string;
     specialty?: string;

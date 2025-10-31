@@ -16,6 +16,8 @@ import CartScreen from '../Pages/Pharmacy/CartScreen';
 import DrugDetailScreen from '../Pages/Pharmacy/DrugDetailScreen';
 import PharmacyScreen from '../Pages/Pharmacy/PharmacyScreen';
 import InvitesScreen from '../InviteScreen';
+import FindHospitals from '../Pages/Hospitals/FindHospitals';
+import HospitalDetails from '../Pages/Hospitals/HospitalDetails';
 
 const Stack = createStackNavigator();
 
@@ -48,6 +50,8 @@ export default function App() {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="MedicalFiles" component={MedicalFilesScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="FindHospitals" component={FindHospitals} />
+      <Stack.Screen name="HospitalDetails" component={HospitalDetails} />
     </Stack.Navigator>
   );
 }
