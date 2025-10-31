@@ -19,7 +19,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import type { RootStackParamList } from '../Navigation/types';
+import type { RootStackParamList } from '../navigation/types';
 
 const SignUpScreen = () => {
   const backScale = useRef(new Animated.Value(1)).current;
@@ -88,12 +88,17 @@ const SignUpScreen = () => {
 
       try {
         await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('hasSession', 'true');
+        await AsyncStorage.setItem('savedPassword', password);
+        await AsyncStorage.setItem('savedEmail', email);
       } catch (e) {
         console.warn('Failed to persist token', e);
       }
 
-      // navigate into app (replace to clear signup stack)
-      if ((navigation as any).replace) {
+      // navigate into app (reset to Home to clear signup/login history)
+      if ((navigation as any).reset) {
+        (navigation as any).reset({ index: 0, routes: [{ name: 'Home' }] });
+      } else if ((navigation as any).replace) {
         (navigation as any).replace('Home');
       } else {
         navigation.navigate('Home');

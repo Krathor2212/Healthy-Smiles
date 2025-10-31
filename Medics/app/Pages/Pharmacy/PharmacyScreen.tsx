@@ -12,7 +12,7 @@ import {
   View
 } from 'react-native';
 import AppHeader from '../../components/AppHeader';
-import type { RootStackParamList } from '../../Navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import pstyles from '../styles/pharmaStyle';
 import { Product, useCartStore } from './stores/cartStores';
 

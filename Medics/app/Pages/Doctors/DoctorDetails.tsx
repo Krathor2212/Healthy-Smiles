@@ -11,7 +11,7 @@ import {
   View
 } from "react-native";
 import AppHeader from '../../components/AppHeader';
-import type { RootStackParamList } from '../../Navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import { doctorDetailStyles } from "../styles/doctorDetailStyles";
 
 type DoctorDetailsRouteProp = RouteProp<RootStackParamList, 'DoctorDetails'>;

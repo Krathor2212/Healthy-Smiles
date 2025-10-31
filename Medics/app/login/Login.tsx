@@ -61,15 +61,22 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
         return;
       }
 
-      // persist token
+      // persist token and session
       try {
         await AsyncStorage.setItem('token', token);
+        // mark that the user has an active session (used to show biometric next launches)
+        await AsyncStorage.setItem('hasSession', 'true');
+        // per request: persist password (insecure). It's better to use SecureStore in production.
+        await AsyncStorage.setItem('savedPassword', password);
+        // save email for auto-login
+        await AsyncStorage.setItem('savedEmail', email);
       } catch (e) {
         // non-fatal, still proceed
-        console.warn('Failed to save token', e);
+        console.warn('Failed to save token/session', e);
       }
 
-      navigation.navigate('Home');
+      // Reset navigation stack to Home so back button cannot return to Login
+      navigation.reset({ index: 0, routes: [{ name: 'Home' as any }] });
     } catch (err: any) {
       Alert.alert('Network error', err?.message || 'Unable to reach server');
     } finally {

@@ -15,7 +15,7 @@ import {
     View
 } from "react-native";
 import AppHeader from "../components/AppHeader";
-import { RootStackParamList } from "../Navigation/types";
+import { RootStackParamList } from "../navigation/types";
 
 const STORAGE_KEY = "MEDICAL_FILES";
 

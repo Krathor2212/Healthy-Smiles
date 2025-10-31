@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { Article, ArticlesData } from "../Home/types/articles";
-import type { RootStackParamList } from '../Navigation/types';
+import type { RootStackParamList } from '../navigation/types';
 import { articlesStyles } from "../Pages/styles/articlesStyles";
 
 // Article data for different categories

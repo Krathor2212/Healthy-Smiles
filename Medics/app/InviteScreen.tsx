@@ -3,6 +3,8 @@ import { NavigationProp } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
+import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Dimensions, Image, Platform, Pressable, Animated as RNAnimated, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
@@ -48,9 +50,79 @@ const InvitesScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
         RNAnimated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
     };
 
-    const handleGetStarted = () => {
-        // Navigate to the new AuthOptions screen
-        navigation.navigate('AuthOptions');
+    const handleGetStarted = async () => {
+        try {
+            // If user does not have a saved session yet (first run), go to Login directly
+            const hasSession = await AsyncStorage.getItem('hasSession');
+            // Treat only explicit 'true' as an existing session
+            if (hasSession !== 'true') {
+                navigation.navigate('Login');
+                return;
+            }
+
+            // Require an existing token to show biometric; otherwise go to Login
+            const existingToken = await AsyncStorage.getItem('token');
+            if (!existingToken) {
+                navigation.navigate('Login');
+                return;
+            }
+
+            // Otherwise, trigger biometric auth as previously implemented
+            const compatible = await LocalAuthentication.hasHardwareAsync();
+            const enrolled = await LocalAuthentication.isEnrolledAsync();
+            const isAvailable = compatible && enrolled;
+
+            if (!isAvailable) {
+                navigation.navigate('AuthOptions');
+                return;
+            }
+
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Touch the fingerprint sensor',
+                cancelLabel: 'Cancel',
+                disableDeviceFallback: false,
+            });
+
+            if (result.success) {
+                // on biometric success, prefer existing token; if missing try auto-login with saved creds
+                const existingToken = await AsyncStorage.getItem('token');
+                if (existingToken) {
+                    navigation.navigate('Home');
+                    return;
+                }
+
+                // attempt auto-login using saved credentials
+                const savedEmail = await AsyncStorage.getItem('savedEmail');
+                const savedPassword = await AsyncStorage.getItem('savedPassword');
+                if (savedEmail && savedPassword) {
+                    try {
+                        const backend = (require('expo-constants').default.expoConfig?.extra?.BACKEND_URL || (require('expo-constants').default.manifest as any)?.extra?.BACKEND_URL) || 'http://10.11.146.215:4000';
+                        const resp = await fetch(`${backend.replace(/\/$/, '')}/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ role: 'patient', email: savedEmail, password: savedPassword }),
+                        });
+                        const data = await resp.json().catch(() => ({}));
+                        if (resp.ok && (data?.token || data?.accessToken)) {
+                            const token = data?.token ?? data?.accessToken;
+                            await AsyncStorage.setItem('token', token);
+                            navigation.navigate('Home');
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('Auto-login after biometric failed', e);
+                    }
+                }
+
+                // fallback
+                navigation.navigate('AuthOptions');
+            } else {
+                navigation.navigate('AuthOptions');
+            }
+        } catch (error) {
+            console.error('Biometric auth error from InviteScreen:', error);
+            navigation.navigate('AuthOptions');
+        }
     };
 
     // This effect cycles through the images for the background every 5 seconds

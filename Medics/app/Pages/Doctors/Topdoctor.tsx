@@ -4,7 +4,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
 import { FlatList, Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import AppHeader from '../../components/AppHeader';
-import type { RootStackParamList } from '../../Navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import { topDoctorStyles } from "../styles/topDoctorStyles";
 
 type Doctor = {

@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { RootStackParamList } from '../Navigation/types';
+import type { RootStackParamList } from '../navigation/types';
 
 // --- Types and Constants ---
 
@@ -85,10 +85,16 @@ export default function ProfileScreen(): React.ReactElement {
           {
             text: 'Logout',
             style: 'destructive',
-            onPress: () => {
-              // TODO: clear auth state and navigate to Login
-              console.log('logout');
-              navigation.replace ? navigation.replace('Login' as any) : navigation.navigate('Login' as any);
+            onPress: async () => {
+              try {
+                // fully clear all session-related keys so biometric won't appear after logout
+                await AsyncStorage.multiRemove(['token', 'hasSession', 'savedEmail', 'savedPassword', 'userProfile']);
+              } catch (e) {
+                console.warn('Failed to clear session on logout', e);
+              }
+
+              // Reset navigation stack so back button cannot return to protected screens
+              navigation.reset({ index: 0, routes: [{ name: 'Intro' as any }] });
             },
           },
         ]);

@@ -4,7 +4,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
 import { Alert, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import AppHeader from '../../components/AppHeader';
-import type { RootStackParamList } from '../../Navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import appointmentStyles from "../styles/appointmentStyles";
 
 type AppointmentRouteProp = RouteProp<RootStackParamList, 'Appointment'>;
