@@ -6,239 +6,112 @@ import {
   StyleSheet,
   Alert,
   Image,
-  ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
-import * as ImagePicker from 'expo-image-picker';
-import * as FaceDetector from 'expo-face-detector';
+import { Ionicons } from '@expo/vector-icons';
 
 interface AuthOptionsProps {
   navigation: NavigationProp<any>;
 }
 
 const AuthOptions: React.FC<AuthOptionsProps> = ({ navigation }) => {
-  const [loading, setLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   useEffect(() => {
-    // Request permissions on mount
-    (async () => {
-      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-      const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (cameraStatus !== 'granted' || mediaStatus !== 'granted') {
-        Alert.alert('Permissions needed', 'Camera and media library permissions are required for biometric authentication.');
-      }
-    })();
+    // Auto-trigger biometric authentication on mount (like BHIM)
+    const autoAuthenticate = async () => {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for better UX
+      handleBiometricAuth();
+    };
+    autoAuthenticate();
   }, []);
 
-  const handleBiometric = async () => {
-    setLoading(true);
+  const handleBiometricAuth = async () => {
     try {
-      // Check if biometric hardware is available
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      // Check biometric availability directly instead of using state
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      const isAvailable = compatible && enrolled;
+      
+      setBiometricAvailable(isAvailable);
 
-      if (!hasHardware || !isEnrolled) {
-        Alert.alert('Biometric not available', 'Biometric authentication is not set up on this device.');
-        setLoading(false);
-        return;
-      }
-
-      // For simplicity, we'll use LocalAuthentication for biometric (which includes face on some devices)
-      // But for face recognition, we need to capture and store face data
-      const storedFaces = await AsyncStorage.getItem('biometricFaces');
-      const faces = storedFaces ? JSON.parse(storedFaces) : [];
-
-      if (faces.length === 0) {
-        // New user - capture face
-        await captureFace();
-      } else {
-        // Existing user - verify face
-        await verifyFace(faces);
-      }
-    } catch (error) {
-      console.error('Biometric error:', error);
-      Alert.alert('Error', 'Failed to authenticate with biometric.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const captureFace = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission denied', 'Camera permission is required.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      const imageUri = result.assets[0].uri;
-      // Detect faces in the image
-      const faces = await FaceDetector.detectFacesAsync(imageUri, {
-        mode: FaceDetector.FaceDetectorMode.fast,
-        detectLandmarks: FaceDetector.FaceDetectorLandmarks.none,
-        runClassifications: FaceDetector.FaceDetectorClassifications.none,
-        minDetectionInterval: 100,
-        tracking: false,
-      });
-
-      if (faces.faces.length > 0) {
-        // Store face data (simplified - in real app, you'd store face embeddings)
-        const faceData = {
-          id: Date.now().toString(),
-          imageUri,
-          timestamp: new Date().toISOString(),
-        };
-
-        const storedFaces = await AsyncStorage.getItem('biometricFaces');
-        const facesArray = storedFaces ? JSON.parse(storedFaces) : [];
-        facesArray.push(faceData);
-        await AsyncStorage.setItem('biometricFaces', JSON.stringify(facesArray));
-
-        Alert.alert('Success', 'Face captured successfully! You can now use biometric authentication.');
-      } else {
-        Alert.alert('No face detected', 'Please try again and ensure your face is clearly visible.');
-      }
-    }
-  };
-
-  const verifyFace = async (storedFaces: any[]) => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission denied', 'Camera permission is required.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      const imageUri = result.assets[0].uri;
-      const faces = await FaceDetector.detectFacesAsync(imageUri, {
-        mode: FaceDetector.FaceDetectorMode.fast,
-        detectLandmarks: FaceDetector.FaceDetectorLandmarks.none,
-        runClassifications: FaceDetector.FaceDetectorClassifications.none,
-        minDetectionInterval: 100,
-        tracking: false,
-      });
-
-      if (faces.faces.length > 0) {
-        // Simplified verification - in real app, compare face embeddings
-        Alert.alert('Success', 'Face verification successful!', [
-          { text: 'OK', onPress: () => navigation.navigate('Home') }
-        ]);
-      } else {
-        Alert.alert('Verification failed', 'Face not recognized. Please try again.');
-      }
-    }
-  };
-
-  const handleFingerprint = async () => {
-    setLoading(true);
-    try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-
-      if (!hasHardware || !supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT) || !isEnrolled) {
-        Alert.alert('Fingerprint not available', 'Fingerprint authentication is not set up on this device.');
-        setLoading(false);
+      if (!isAvailable) {
+        Alert.alert(
+          'Biometric Not Available',
+          'Please set up biometric authentication in your device settings or use PIN.',
+          [{ text: 'OK' }]
+        );
         return;
       }
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Authenticate with fingerprint',
-        fallbackLabel: 'Use passcode',
+        promptMessage: 'Touch the fingerprint sensor',
+        cancelLabel: 'Cancel',
+        disableDeviceFallback: false,
       });
 
       if (result.success) {
-        Alert.alert('Success', 'Fingerprint authentication successful!', [
-          { text: 'OK', onPress: () => navigation.navigate('Home') }
-        ]);
+        navigation.navigate('Home');
       } else {
-        Alert.alert('Authentication failed', 'Fingerprint not recognized.');
+        Alert.alert('Authentication Failed', 'Please try again.');
       }
     } catch (error) {
-      console.error('Fingerprint error:', error);
-      Alert.alert('Error', 'Failed to authenticate with fingerprint.');
-    } finally {
-      setLoading(false);
+      console.error('Biometric authentication error:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
 
-  const handleEmailAuth = () => {
+  const handleUsePIN = () => {
     navigation.navigate('Login');
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Choose Authentication Method</Text>
-        <Text style={styles.subtitle}>Select how you'd like to secure your account</Text>
-      </View>
-
-      <View style={styles.optionsContainer}>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={handleBiometric}
-          disabled={loading}
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      
+      {/* Top Section - Fingerprint Icon */}
+      <View style={styles.topSection}>
+        <Text style={styles.unlockText}>Unlock With Biometrics</Text>
+        <TouchableOpacity 
+          style={styles.fingerprintIconContainer}
+          onPress={handleBiometricAuth}
+          activeOpacity={0.7}
         >
-          <Image
-            source={require('../assets/logo.png')} // You can replace with a face icon
-            style={styles.optionIcon}
-            resizeMode="contain"
-          />
-          <Text style={styles.optionTitle}>Biometric (Face)</Text>
-          <Text style={styles.optionDescription}>Use face recognition for quick access</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={handleFingerprint}
-          disabled={loading}
-        >
-          <Image
-            source={require('../assets/logo.png')} // You can replace with a fingerprint icon
-            style={styles.optionIcon}
-            resizeMode="contain"
-          />
-          <Text style={styles.optionTitle}>Fingerprint</Text>
-          <Text style={styles.optionDescription}>Secure authentication with your fingerprint</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={handleEmailAuth}
-          disabled={loading}
-        >
-          <Image
-            source={require('../assets/logo.png')} // You can replace with an email icon
-            style={styles.optionIcon}
-            resizeMode="contain"
-          />
-          <Text style={styles.optionTitle}>Email Login/Signup</Text>
-          <Text style={styles.optionDescription}>Traditional email and password authentication</Text>
+          <Ionicons name="finger-print" size={80} color="#FF6B35" />
         </TouchableOpacity>
       </View>
 
-      {loading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#14B8A6" />
-          <Text style={styles.loadingText}>Authenticating...</Text>
+      {/* Middle Section - App Info */}
+      <View style={styles.middleSection}>
+        <View style={styles.appIconContainer}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.appIcon}
+            resizeMode="contain"
+          />
         </View>
-      )}
+        <Text style={styles.appName}>Healthy Smiles</Text>
+        <Text style={styles.unlockAppText}>Unlock Healthy Smiles</Text>
+      </View>
+
+      {/* Bottom Section - Instructions and PIN Button */}
+      <View style={styles.bottomSection}>
+        <Text style={styles.instructionText}>Touch the fingerprint sensor</Text>
+        
+        <View style={styles.fingerprintSymbolContainer}>
+          <Ionicons name="finger-print-outline" size={60} color="#FFFFFF" opacity={0.5} />
+        </View>
+
+        <TouchableOpacity 
+          style={styles.usePinButton}
+          onPress={handleUsePIN}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.usePinText}>Use PIN</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -246,74 +119,91 @@ const AuthOptions: React.FC<AuthOptionsProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
-    paddingHorizontal: 24,
+    backgroundColor: '#1a1a1a',
+  },
+  topSection: {
+    flex: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingTop: 60,
   },
-  header: {
-    alignItems: 'center',
+  unlockText: {
+    fontSize: 18,
+    color: '#FFFFFF',
     marginBottom: 40,
+    fontWeight: '500',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A202C',
-    textAlign: 'center',
-    marginBottom: 8,
+  fingerprintIconContainer: {
+    padding: 20,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#4A5568',
-    textAlign: 'center',
-  },
-  optionsContainer: {
-    flex: 1,
+  middleSection: {
+    flex: 2.5,
     justifyContent: 'center',
-  },
-  optionButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingTop: 50,
+    paddingBottom: 30,
   },
-  optionIcon: {
+  appIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  appIcon: {
     width: 60,
     height: 60,
-    marginBottom: 16,
   },
-  optionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A202C',
-    marginBottom: 8,
-  },
-  optionDescription: {
-    fontSize: 14,
-    color: '#4A5568',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  loadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
+  appName: {
     fontSize: 16,
-    color: '#14B8A6',
+    color: '#FFFFFF',
+    marginBottom: 20,
     fontWeight: '500',
+  },
+  unlockAppText: {
+    fontSize: 22,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  bottomSection: {
+    flex: 3,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 40,
+  },
+  instructionText: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    textAlign: 'center',
+  },
+  fingerprintSymbolContainer: {
+    marginVertical: 20,
+  },
+  usePinButton: {
+    backgroundColor: '#5B6EE1',
+    paddingHorizontal: 50,
+    paddingVertical: 14,
+    borderRadius: 25,
+    shadowColor: '#5B6EE1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  usePinText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
