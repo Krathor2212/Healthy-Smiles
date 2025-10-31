@@ -150,7 +150,7 @@ export default function HomeScreen() {
         navigation.navigate('FindDoctorsScreen');
         break;
       case 'Hospital':
-        // Add hospital navigation if needed
+        navigation.navigate('FindHospitals');
         break;
       case 'Ambulance':
         // Add ambulance navigation if needed

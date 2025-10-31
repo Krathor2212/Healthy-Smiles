@@ -306,9 +306,9 @@ export default function FindDoctorsScreen() {
   {currentDoctors.map((doctor, index) => (
     <JuicyTransitionWrapper
       key={doctor.id}
-      id={`${doctor.id}-${index}`}
+      id={index}
       cardless
-      delayMultiplier={100} // tweak this for slower or faster stagger
+      delayMultiplier={250} 
     >
       <TouchableOpacity
         style={findDoctorsStyles.doctorListItem}
