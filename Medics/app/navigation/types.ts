@@ -2,6 +2,7 @@ export type RootStackParamList = {
   Intro: undefined;
   Login: undefined;
   SignUp: undefined;
+  ForgotPassword: undefined;
   Home: undefined;
   AllChatsScreen: undefined;
   IndividualChatScreen: {

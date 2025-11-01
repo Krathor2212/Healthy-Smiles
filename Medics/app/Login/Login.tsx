@@ -182,7 +182,7 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
         {/* --- Error Message & Forgot Password --- */}
         <View style={styles.actionsContainer}>
             {error ? <Text style={styles.errorText}>{error}</Text> : <View />}
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
         </View>

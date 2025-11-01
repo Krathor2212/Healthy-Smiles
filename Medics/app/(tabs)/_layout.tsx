@@ -25,6 +25,7 @@ import IndividualChatScreen from '../Pages/Chat/IndividualChatScreen';
 import FAQsScreen from '../Pages/Profile/FAQScreen';
 import NotificationsScreen from '../Notifications';
 import InsuranceScreen from '../Home/Insurance';
+import ForgotPasswordScreen from '../Login/ForgotPassword';
 import ScreenWrapper from '../components/ScreenWrapper';
 
 const Stack = createStackNavigator();
@@ -65,6 +66,7 @@ export default function App() {
       <Stack.Screen name="AuthOptions" component={withoutBottomNav(AuthOptions)} />
       <Stack.Screen name="Login" component={withoutBottomNav(LoginScreen)} />
       <Stack.Screen name="SignUp" component={withoutBottomNav(SignUpScreen)} />
+      <Stack.Screen name="ForgotPassword" component={withoutBottomNav(ForgotPasswordScreen)} />
       
       {/* Main app screens - WITH BottomNavigation */}
       <Stack.Screen name="Home" component={withBottomNav(Home)} />
