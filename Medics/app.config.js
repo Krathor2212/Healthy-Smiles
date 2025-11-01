@@ -25,6 +25,8 @@ module.exports = ({ config }) => {
     extra: {
       ...(config.extra || {}),
       BACKEND_URL: env.BACKEND_URL || process.env.BACKEND_URL || 'http://10.11.146.215:4000',
+      // Google Web OAuth client ID for expo-auth-session (used in Sign in with Google)
+      GOOGLE_WEB_CLIENT_ID: env.GOOGLE_WEB_CLIENT_ID || process.env.GOOGLE_WEB_CLIENT_ID || '513850771495-afab1ur6e8r93dckrtca9dpnvar75999.apps.googleusercontent.com',
     },
   };
 };

@@ -12,6 +12,7 @@ export type RootStackParamList = {
   Profile: undefined;
   EditProfile: undefined;
   MedicalFiles: undefined;
+  FindHospitals: undefined;
  
 
   DoctorDetails: {

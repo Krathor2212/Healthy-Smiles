@@ -105,8 +105,127 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
   };
 
   const handleGoogleSignIn = () => {
-    console.log('Attempting Google Sign-In...');
-    // Add your Google Sign-In logic here
+    (async () => {
+      console.log('Attempting Google Sign-In...');
+      try {
+        // Diagnostic: print what the app sees for the client id at runtime
+        try {
+          // eslint-disable-next-line no-console
+          console.log('runtime GOOGLE_WEB_CLIENT_ID =', (Constants as any).expoConfig?.extra?.GOOGLE_WEB_CLIENT_ID);
+          // show a small alert to help debugging on-device (disabled by default)
+          // Alert.alert('DEBUG', `GOOGLE_WEB_CLIENT_ID = ${ (Constants as any).expoConfig?.extra?.GOOGLE_WEB_CLIENT_ID }`);
+        } catch (d) {
+          // ignore diagnostic errors
+        }
+  const AuthSession = await import('expo-auth-session');
+  // Use the top-level Constants import (cast to any for runtime-only fields)
+  const extra = (Constants as any).expoConfig?.extra || (Constants as any).manifest?.extra || {};
+        const clientId = extra.GOOGLE_WEB_CLIENT_ID || extra.GOOGLE_CLIENT_ID || undefined;
+        if (!clientId) {
+          Alert.alert('Google Sign-In not configured', 'No Google OAuth client ID found in app configuration.');
+          return;
+        }
+
+  const redirectUri = (AuthSession as any).makeRedirectUri({ useProxy: true } as any);
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+          clientId
+        )}&response_type=token%20id_token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(
+          'profile email'
+        )}&prompt=select_account`;
+
+        // Try to use AuthSession.startAsync if available, otherwise fall back to expo-web-browser
+        let idToken: string | undefined;
+        let accessToken: string | undefined;
+        try {
+          if ((AuthSession as any).startAsync) {
+            const result = await (AuthSession as any).startAsync({ authUrl } as any);
+            if (result?.type !== 'success') {
+              console.log('Google auth cancelled or failed', result);
+              return;
+            }
+            const { params } = result as any;
+            idToken = params?.id_token || params?.idToken;
+            accessToken = params?.access_token || params?.accessToken;
+          } else {
+            // fallback: use expo-web-browser
+            const WebBrowser = await import('expo-web-browser');
+            const redirectUri = (AuthSession as any)?.makeRedirectUri ? (AuthSession as any).makeRedirectUri({ useProxy: true } as any) : undefined;
+            const wbResult = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri as any);
+            if (wbResult.type !== 'success' || !wbResult.url) {
+              console.log('WebBrowser auth cancelled or failed', wbResult);
+              return;
+            }
+            // url will contain fragment like #access_token=...&id_token=... or query params
+            const url = wbResult.url;
+            const hash = url.split('#')[1] || url.split('?')[1] || '';
+            const params = Object.fromEntries(hash.split('&').map(p => p.split('=').map(decodeURIComponent)));
+            idToken = params['id_token'] || params['idToken'];
+            accessToken = params['access_token'] || params['accessToken'];
+          }
+        } catch (e) {
+          console.log('AuthSession start error', e);
+          throw e;
+        }
+        if (!idToken && !accessToken) {
+          Alert.alert('Google Sign-In failed', 'No tokens received from Google.');
+          return;
+        }
+        if (!idToken && !accessToken) {
+          Alert.alert('Google Sign-In failed', 'No tokens received from Google.');
+          return;
+        }
+
+        // Send idToken to backend for verification and app-token exchange
+        try {
+          const backend = (Constants.expoConfig?.extra?.BACKEND_URL || (Constants.manifest as any)?.extra?.BACKEND_URL) || 'http://10.11.146.215:4000';
+          const resp = await fetch(`${backend.replace(/\/$/, '')}/login/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'patient', idToken }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (resp.ok) {
+            const token = data?.token ?? data?.accessToken;
+            if (!token) return Alert.alert('Login error', 'No token returned from server');
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('hasSession', 'true');
+            // backend returns id or email in response if needed; store savedEmail if present
+            if (data?.email) await AsyncStorage.setItem('savedEmail', data.email);
+            navigation.reset({ index: 0, routes: [{ name: 'Home' as any }] });
+          } else if (data?.error === 'user_not_found' || resp.status === 404) {
+            // no backend account — send user to SignUp with prefilled email
+            Alert.alert('Account not found', 'No account linked to this Google email. Please sign up.');
+            // backend may include email in response; fallback to decoding idToken locally to extract email
+            let emailFromResp = data?.email;
+            if (!emailFromResp) {
+              try {
+                // decode idToken payload (base64)
+                const parts = idToken.split('.');
+                if (parts.length >= 2) {
+                  const payload = JSON.parse(decodeURIComponent(escape(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))));
+                  emailFromResp = payload.email;
+                }
+              } catch (err) {
+                // ignore
+              }
+            }
+            navigation.navigate('SignUp', { prefillEmail: emailFromResp });
+          } else {
+            const msg = data?.message || data?.error || 'Backend login failed';
+            Alert.alert('Login error', msg);
+          }
+        } catch (e: any) {
+          console.warn('Backend exchange failed', e);
+          Alert.alert('Network error', 'Unable to reach backend for Google login.');
+        }
+      } catch (e: any) {
+        console.warn('expo-auth-session not available or errored', e);
+        Alert.alert(
+          'Google Sign-In unavailable',
+          'The app is missing the required dependency (expo-auth-session) or configuration. Install expo-auth-session and set GOOGLE_WEB_CLIENT_ID in app config.'
+        );
+      }
+    })();
   };
   
   return (

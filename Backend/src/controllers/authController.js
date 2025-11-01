@@ -54,4 +54,41 @@ async function login(req, res) {
   }
 }
 
-module.exports = { register, login };
+async function googleLogin(req, res) {
+  // Expect: { idToken, role }
+  try {
+    const { idToken, role } = req.body;
+    if (!idToken || !role) return res.status(400).json({ error: 'missing_fields' });
+
+    const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    if (!CLIENT_ID) return res.status(500).json({ error: 'server_misconfigured' });
+
+    // Verify idToken with Google
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(CLIENT_ID);
+    let ticket;
+    try {
+      ticket = await client.verifyIdToken({ idToken, audience: CLIENT_ID });
+    } catch (e) {
+      console.warn('idToken verification failed', e);
+      return res.status(401).json({ error: 'invalid_id_token' });
+    }
+    const payload = ticket.getPayload();
+    const email = payload?.email;
+    if (!email) return res.status(400).json({ error: 'no_email_in_token' });
+
+    const table = role === 'doctor' ? 'doctors' : 'patients';
+    const emailHmac = computeHmac(email);
+    const q = `SELECT id FROM ${table} WHERE email_hmac = $1`;
+    const r = await db.query(q, [emailHmac]);
+    if (!r.rows.length) return res.status(404).json({ error: 'user_not_found', email });
+    const { id } = r.rows[0];
+    const token = jwt.sign({ id, role }, process.env.JWT_SECRET || 'devsecret');
+    res.json({ token, id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'internal_error' });
+  }
+}
+
+module.exports = { register, login, googleLogin };

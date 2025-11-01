@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import type { RootStackParamList } from '../navigation/types';
 import { homeStyles } from "../Pages/styles/homeStyles";
+import { AuthSession } from "expo-auth-session";
 
 export default function HomeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -159,6 +160,10 @@ export default function HomeScreen() {
         break;
     }
   };
+
+  // Debugging Google Sign-In redirect URI
+  const redirectUri = (AuthSession as any).makeRedirectUri({ useProxy: true } as any);
+  console.log('DEBUG redirectUri =', redirectUri);
 
   return (
     <ScrollView style={homeStyles.container} showsVerticalScrollIndicator={false}>

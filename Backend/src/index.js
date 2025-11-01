@@ -17,6 +17,10 @@ app.use('/api/files', fileRoutes);
 // Root aliases to match requested endpoints
 app.post('/register', register);
 app.post('/login', login);
+app.post('/login/google', (req, res) => {
+    const { googleLogin } = require('./controllers/authController');
+    return googleLogin(req, res);
+});
 
 const port = process.env.PORT || 4000;
 function getLocalIPv4() {

@@ -1,6 +1,6 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import Constants from 'expo-constants';
 import React, { useEffect, useRef, useState } from 'react';
@@ -33,7 +33,9 @@ const SignUpScreen = () => {
     });
     return () => { showSub.remove(); hideSub.remove(); };
   }, [headerSlide]);
+  const route = useRoute<any>();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const prefillEmail = route?.params?.prefillEmail ?? '';
 
   const onBackPressIn = () => Animated.spring(backScale, { toValue: 0.93, useNativeDriver: true }).start();
   const onBackPressOut = () => Animated.spring(backScale, { toValue: 1, useNativeDriver: true }).start();
@@ -42,7 +44,7 @@ const SignUpScreen = () => {
   };
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -56,6 +58,14 @@ const SignUpScreen = () => {
     }
     if (!name.trim() || !email.trim() || !password) {
       Alert.alert('Missing fields', 'Please provide name, email and password.');
+      return;
+    }
+
+    // Basic email format validation before calling Firebase
+    const emailTrim = email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailTrim)) {
+      Alert.alert('Invalid email', 'Please enter a valid email address.');
       return;
     }
 
@@ -75,8 +85,13 @@ const SignUpScreen = () => {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msg = data?.message || data?.error || 'Registration failed';
+        // Map some backend error responses to friendly messages
+        const err = data?.error || data?.message || '';
+        let msg = 'Registration failed';
+        if (err.includes('duplicate') || err.includes('already')) msg = 'This email is already registered.';
+        else if (err.includes('weak')) msg = 'Password is too weak.';
         Alert.alert('Signup error', msg);
+        setLoading(false);
         return;
       }
 
