@@ -166,10 +166,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Send push token to backend
   const sendPushTokenToBackend = async (token: string) => {
     try {
+      if (!token) {
+        console.log('No push token to send to backend');
+        return;
+      }
+      
       const authToken = await AsyncStorage.getItem('token');
-      if (!authToken) return;
+      if (!authToken) {
+        console.log('No auth token, skipping push token registration');
+        return;
+      }
 
-      await fetch(`${BACKEND_URL}/api/user/push-token`, {
+      const response = await fetch(`${BACKEND_URL}/api/user/push-token`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -177,6 +185,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         },
         body: JSON.stringify({ pushToken: token })
       });
+      
+      if (response.ok) {
+        console.log('Push token registered with backend');
+      } else {
+        console.warn('Failed to register push token with backend:', response.status);
+      }
     } catch (error) {
       console.error('Send push token error:', error);
     }
@@ -233,12 +247,22 @@ async function registerForPushNotificationsAsync() {
   }
 
   try {
+    // Get project ID from app.json or app.config.js
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    
+    if (!projectId) {
+      console.warn('No Expo project ID found. Push notifications will work locally but not for remote notifications.');
+      console.warn('To enable remote push notifications, add projectId to app.json under expo.extra.eas.projectId');
+      return; // Skip getting push token in development
+    }
+    
     token = (await Notifications.getExpoPushTokenAsync({
-      projectId: Constants.expoConfig?.extra?.eas?.projectId || 'your-project-id'
+      projectId: projectId
     })).data;
     console.log('Expo Push Token:', token);
   } catch (error) {
     console.error('Error getting push token:', error);
+    // Don't throw - allow app to continue without push tokens
   }
 
   return token;

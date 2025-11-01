@@ -52,6 +52,14 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "BACKEND_URL": "http://192.168.137.1:4000",
+      "router": {},
+      "eas": {
+        "projectId": "bd1006c0-e233-439d-bda0-2d57c5639218"
+      }
+    },
+    "owner": "purushothaman2212"
   }
 }
