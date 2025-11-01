@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
@@ -140,6 +141,11 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="#fff" 
+        translucent={false} 
+      />
       <ScrollView style={homeStyles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={homeStyles.header}>

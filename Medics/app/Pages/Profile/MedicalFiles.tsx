@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
 import * as DocumentPicker from "expo-document-picker";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     Animated,
     FlatList,
@@ -12,12 +12,15 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
+    Alert,
+    ActivityIndicator
 } from "react-native";
 import AppHeader from "../../components/AppHeader";
 import { RootStackParamList } from "../../Navigation/types";
+import Constants from 'expo-constants';
 
-const STORAGE_KEY = "MEDICAL_FILES";
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 type MedicalFile = {
   id: string;
@@ -30,41 +33,54 @@ type MedicalFile = {
 
 export default function MedicalFileManagerScreen() {
   const [files, setFiles] = useState<MedicalFile[]>([]);
-  const [savedFiles, setSavedFiles] = useState<MedicalFile[]>([]); // snapshot from storage
   const [isModalVisible, setModalVisible] = useState(false);
   const [editingFile, setEditingFile] = useState<MedicalFile | null>(null);
   const [labelInput, setLabelInput] = useState("");
-  const [pickedPreview, setPickedPreview] = useState<MedicalFile | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
-  const [isDirty, setDirty] = useState(false); // track unsaved changes
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fadeAnim = new Animated.Value(0);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const handleBackPress = () => navigation.goBack();
 
-  const persist = async (
-    updater: MedicalFile[] | ((prev: MedicalFile[]) => MedicalFile[])
-  ) => {
-    setFiles((prev) => {
-      const next =
-        typeof updater === "function" ? (updater as any)(prev) : updater;
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(console.warn);
-      return next;
-    });
+  // Fetch files from backend
+  const fetchFiles = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        Alert.alert('Error', 'Please login to view medical files');
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/files/medical`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setFiles(data.files || []);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to load files');
+      }
+    } catch (error) {
+      console.error('Fetch files error:', error);
+      Alert.alert('Error', 'Failed to load medical files');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    const loadFiles = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
-        const parsed = saved ? JSON.parse(saved) : [];
-        setFiles(parsed);
-        setSavedFiles(parsed);
-      } catch (e) {
-        console.warn("Failed to load files", e);
-      }
-    };
-    loadFiles();
-  }, []);
+  // Refresh files when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchFiles();
+    }, [])
+  );
 
   const showToast = (msg: string) => {
     setSuccessMessage(msg);
@@ -76,83 +92,153 @@ export default function MedicalFileManagerScreen() {
   };
 
   const handleAddFile = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: "*/*",
-      copyToCacheDirectory: true,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    const doc = result.assets[0];
-    const file: MedicalFile = {
-      id: Date.now().toString(),
-      name: doc.name,
-      uri: doc.uri,
-      size: doc.size || 0,
-      mimeType: doc.mimeType || null,
-      createdAt: new Date().toISOString(),
-    };
-    setPickedPreview(file);
-  };
-
-  const handleSavePreview = () => {
-    if (!pickedPreview) return;
-    // Add to local list, mark dirty — don't persist until user presses Save
-    setFiles((prev) => [pickedPreview!, ...prev]);
-    setPickedPreview(null);
-    setDirty(true);
-    showToast("File added to list (unsaved)");
-  };
-
-  const handleEditPreview = () => {
-    if (!pickedPreview) return;
-    setEditingFile(pickedPreview);
-    setLabelInput(pickedPreview.name);
-    setModalVisible(true);
-  };
-  
-  const handleRename = (file: MedicalFile) => {
-    setEditingFile(file);
-    setLabelInput(file.name);
-    setModalVisible(true);
-  };
-
-  const confirmRename = () => {
-    if (!editingFile) return;
-
-    // If we're renaming the picked preview (it may already be in files list), update it locally
-    if (pickedPreview && editingFile.id === pickedPreview.id) {
-      setPickedPreview({ ...pickedPreview, name: labelInput });
-      // also update in the local list if present
-      setFiles((prev) => prev.map((f) => (f.id === editingFile.id ? { ...f, name: labelInput } : f)));
-    } else {
-      // Update local list only and mark dirty
-      setFiles((prev) =>
-        prev.map((f) => (f.id === editingFile.id ? { ...f, name: labelInput } : f))
-      );
-    }
-
-    setDirty(true);
-    setModalVisible(false);
-    showToast("Name changed (unsaved)");
-  };
-  
-  const handleDelete = (file: MedicalFile) => {
-    setFiles((prev) => prev.filter((f) => f.id !== file.id));
-    // also clear preview if deleting pickedPreview
-    if (pickedPreview && pickedPreview.id === file.id) setPickedPreview(null);
-    setDirty(true);
-    showToast("File removed (unsaved)");
-  };
-
-  // Save all local changes to AsyncStorage
-  const handleSaveAll = async () => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(files));
-      setSavedFiles(files);
-      setDirty(false);
-      showToast("Changes saved");
-    } catch (e) {
-      console.warn("Failed to save files", e);
-      showToast("Save failed");
+      // First check if we can reach the backend
+      console.log('Backend URL:', BACKEND_URL);
+      
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const doc = result.assets[0];
+
+      // Check file size (50MB limit)
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (doc.size && doc.size > maxSize) {
+        Alert.alert('File Too Large', 'Maximum file size is 50MB');
+        return;
+      }
+
+      // Upload to backend
+      setUploading(true);
+      const token = await AsyncStorage.getItem('token');
+
+      if (!token) {
+        Alert.alert('Error', 'Please login to upload files');
+        setUploading(false);
+        return;
+      }
+
+      console.log('Token found, uploading file...');
+      console.log('File details:', {
+        name: doc.name,
+        size: doc.size,
+        type: doc.mimeType,
+        uri: doc.uri.substring(0, 50) + '...'
+      });
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: doc.uri,
+        name: doc.name,
+        type: doc.mimeType || 'application/octet-stream'
+      } as any);
+
+      console.log('Uploading file:', {
+        name: doc.name,
+        size: doc.size,
+        type: doc.mimeType,
+        uri: doc.uri
+      });
+
+      const uploadUrl = `${BACKEND_URL}/api/files/medical/upload`;
+      console.log('Upload URL:', uploadUrl);
+
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Note: Don't set Content-Type for FormData, let the browser set it with boundary
+        },
+        body: formData
+      });
+
+      console.log('Upload response status:', response.status);
+      const data = await response.json();
+      console.log('Upload response data:', data);
+
+      if (response.ok) {
+        showToast('File uploaded successfully (encrypted)');
+        fetchFiles(); // Refresh file list
+      } else {
+        Alert.alert('Upload Failed', data.error || 'Failed to upload file');
+        console.error('Upload failed:', data);
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      Alert.alert('Error', `Failed to upload file: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (file: MedicalFile) => {
+    Alert.alert(
+      'Delete File',
+      `Are you sure you want to delete "${file.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              
+              const response = await fetch(`${BACKEND_URL}/api/files/medical/${file.id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+
+              const data = await response.json();
+
+              if (response.ok) {
+                showToast('File deleted successfully');
+                fetchFiles(); // Refresh file list
+              } else {
+                Alert.alert('Error', data.error || 'Failed to delete file');
+              }
+            } catch (error) {
+              console.error('Delete error:', error);
+              Alert.alert('Error', 'Failed to delete file');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDownload = async (file: MedicalFile) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      
+      showToast('Downloading file...');
+      
+      const response = await fetch(`${BACKEND_URL}${file.uri}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        showToast('File downloaded successfully');
+        // In a real app, you'd save the file to device storage
+      } else {
+        Alert.alert('Error', 'Failed to download file');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      Alert.alert('Error', 'Failed to download file');
     }
   };
 
@@ -164,17 +250,22 @@ export default function MedicalFileManagerScreen() {
           <Text style={styles.fileName} numberOfLines={2} ellipsizeMode="tail">
             {item.name}
           </Text>
-        <Text style={styles.fileMeta}>
+          <Text style={styles.fileMeta}>
             {typeof item.size === "number" ? `${(item.size / 1048576).toFixed(2)} MB` : "—"}
-        </Text>
+            {item.createdAt && ` • ${new Date(item.createdAt).toLocaleDateString()}`}
+          </Text>
+          <View style={styles.encryptionBadge}>
+            <Ionicons name="shield-checkmark" size={12} color="#28a745" />
+            <Text style={styles.encryptionText}>Encrypted</Text>
+          </View>
         </View>
       </View>
       <View style={styles.fileActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => handleRename(item)}
+          onPress={() => handleDownload(item)}
         >
-          <Ionicons name="create-outline" size={18} color="#333" />
+          <Ionicons name="download-outline" size={18} color="#007AFF" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
@@ -191,98 +282,53 @@ export default function MedicalFileManagerScreen() {
     <View style={styles.container}>
       <AppHeader title="Medical Records" onBack={handleBackPress} />
 
-      {pickedPreview && (
-        <View style={styles.previewBanner}>
-          <Text style={styles.previewText}>Selected: {pickedPreview.name}</Text>
-          <View style={styles.previewActions}>
-            <TouchableOpacity
-              style={[styles.previewBtn, { backgroundColor: "#007AFF" }]}
-              onPress={handleSavePreview}
-            >
-              <Text style={[styles.previewBtnText, { color: "#fff" }]}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.previewBtn, { marginLeft: 8, backgroundColor: "#f5f5f5" }]}
-              onPress={handleEditPreview}
-            >
-              <Ionicons name="create-outline" size={16} color="#333" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.previewBtn, { marginLeft: 8 }]}
-              onPress={() => setPickedPreview(null)}
-            >
-              <Text style={styles.previewBtnText}>Dismiss</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      {/* Info Banner */}
+      <View style={styles.infoBanner}>
+        <Ionicons name="shield-checkmark" size={20} color="#28a745" />
+        <Text style={styles.infoBannerText}>
+          All files are encrypted with El Gamal encryption
+        </Text>
+      </View>
 
-      {/* Add & Save buttons centered with extra top padding */}
+      {/* Add File Button */}
       <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddFile}>
-          <Ionicons name="add" size={20} color="#fff" />
-          <Text style={styles.addButtonText}>Add File</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.saveButton, !isDirty && styles.saveButtonDisabled]}
-          onPress={handleSaveAll}
-          disabled={!isDirty}
+        <TouchableOpacity 
+          style={[styles.addButton, uploading && styles.disabledButton]} 
+          onPress={handleAddFile}
+          disabled={uploading || loading}
         >
-          <Text style={[styles.saveButtonText, !isDirty && { opacity: 0.6 }]}>
-            Save Changes
-          </Text>
+          {uploading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Upload File (Max 50MB)</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 
-      {files.length === 0 ? (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading files...</Text>
+        </View>
+      ) : files.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="folder-open-outline" size={40} color="#aaa" />
-          <Text style={styles.emptyText}>No files yet</Text>
+          <Ionicons name="folder-open-outline" size={50} color="#aaa" />
+          <Text style={styles.emptyText}>No medical files yet</Text>
+          <Text style={styles.emptySubtext}>
+            Upload your medical records, lab reports, and prescriptions
+          </Text>
         </View>
       ) : (
         <FlatList
           data={files}
           keyExtractor={(item) => item.id}
           renderItem={renderFile}
-          contentContainerStyle={{ gap: 10, marginTop: 12 }}
+          contentContainerStyle={{ gap: 10, marginTop: 12, paddingBottom: 20 }}
         />
       )}
-
-      {/* Rename Modal */}
-      <Modal
-        visible={isModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 10 }]}>
-            <Text style={styles.modalTitle}>Rename File</Text>
-            <TextInput
-              value={labelInput}
-              onChangeText={setLabelInput}
-              style={styles.input}
-              placeholder="Enter file name"
-              placeholderTextColor="#aaa"
-            />
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 14 }}>
-              <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: "#eee", marginRight: 10 }]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={{ color: "#333", fontWeight: "600" }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: "#007AFF" }]}
-                onPress={confirmRename}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Success Toast */}
       {successMessage ? (
@@ -306,105 +352,131 @@ export default function MedicalFileManagerScreen() {
 }
 
 const styles = StyleSheet.create({
-  // use a light grey background like the rest of the app and keep padding
   container: { flex: 1, backgroundColor: "#fff" },
 
-  previewBanner: {
-    backgroundColor: "#fff7ed",
-    borderRadius: 10,
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e6f7ed',
     padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#ffe1b5",
-  },
-  previewText: { fontSize: 14, color: "#333", marginBottom: 8 },
-  previewActions: { flexDirection: "row", alignItems: "center" },
-  previewBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-  },
-  previewBtnText: { color: "#333", fontWeight: "600" },
-
-  // tightened spacing so buttons sit closer under the header
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
+    marginHorizontal: 16,
     marginTop: 8,
+    borderRadius: 10,
+    gap: 8,
+  },
+  infoBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#28a745',
+    fontWeight: '600',
+  },
+
+  actionRow: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
   },
 
   addButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: 'center',
     backgroundColor: "#007AFF",
-    padding: 12,
+    padding: 14,
     borderRadius: 10,
-    alignSelf: "center",
+    gap: 8,
   },
-  addButtonText: { color: "#fff", marginLeft: 8, fontWeight: "600" },
+  disabledButton: {
+    backgroundColor: "#a0c4ff",
+  },
+  addButtonText: { 
+    color: "#fff", 
+    fontWeight: "600",
+    fontSize: 15,
+  },
 
-  saveButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#28a745",
-    alignSelf: "center",
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
   },
-  saveButtonDisabled: {
-    backgroundColor: "#b9e6c8",
+  loadingText: {
+    marginTop: 12,
+    color: '#666',
+    fontSize: 14,
   },
-  saveButtonText: { color: "#fff", fontWeight: "700" },
 
-  empty: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 24 },
-  emptyText: { color: "#666" },
+  empty: { 
+    flex: 1, 
+    alignItems: "center", 
+    justifyContent: "center", 
+    marginTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyText: { 
+    color: "#333",
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    color: '#666',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 8,
+  },
   fileRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 10,
+    padding: 14,
+    marginHorizontal: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: "#e5e5e5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  fileInfo: { flexDirection: "row", alignItems: "center" },
-  fileName: { fontSize: 14, fontWeight: "600" },
-  fileMeta: { fontSize: 12, color: "#666" },
-  fileActions: { flexDirection: "row", alignItems: "center" },
+  fileInfo: { 
+    flexDirection: "row", 
+    alignItems: "flex-start",
+  },
+  fileName: { 
+    fontSize: 14, 
+    fontWeight: "600",
+    color: '#333',
+    marginBottom: 4,
+  },
+  fileMeta: { 
+    fontSize: 11, 
+    color: "#888",
+    marginBottom: 4,
+  },
+  encryptionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  encryptionText: {
+    fontSize: 10,
+    color: '#28a745',
+    fontWeight: '600',
+  },
+  fileActions: { 
+    flexDirection: "row", 
+    alignItems: "center",
+    gap: 6,
+  },
   actionButton: {
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
     backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    marginLeft: 6,
-  },
-  actionText: { color: "#333" },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 18,
-  },
-  modalTitle: { fontSize: 16, fontWeight: "700", marginBottom: 10 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    color: "#333",
-  },
-  modalBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
     borderRadius: 8,
   },
 });

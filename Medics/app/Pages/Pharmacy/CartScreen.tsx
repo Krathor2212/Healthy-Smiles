@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   Text,
-  SafeAreaView,
   StatusBar,
   ScrollView,
   TouchableOpacity,
@@ -19,6 +18,7 @@ import type { RootStackParamList } from '../../Navigation/types';
 // Using Ionicons from @expo/vector-icons
 import { Ionicons } from '@expo/vector-icons';
 import { useCartStore } from './stores/cartStores';
+import AppHeader from '../../components/AppHeader';
 
 // --- Constants ---
 const MAIN_GREEN = '#34D399'; // From your other designs
@@ -36,17 +36,6 @@ const getPriceNumber = (priceString: string): number => {
 };
 
 // --- Sub-Components ---
-
-// Header
-const CartHeader = ({ onBackPress }: { onBackPress: () => void }) => (
-  <View style={styles.headerContainer}>
-    <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-      <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
-    </TouchableOpacity>
-    <Text style={styles.headerTitle}>My Cart</Text>
-    <View style={styles.headerSpacer} />
-  </View>
-);
 
 // Cart Item Card
 const CartItemCard = ({ item, onIncrease, onDecrease, onRemove }: { 
@@ -225,9 +214,9 @@ const MyCartScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG_LIGHT_GRAY} />
-      <CartHeader onBackPress={handleBackPress} />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
+      <AppHeader title="My Cart" onBack={handleBackPress} />
 
       <ScrollView
         style={styles.scrollView}
@@ -310,13 +299,13 @@ const MyCartScreen = () => {
         visible={showSuccessModal}
         onBackToHome={handleBackToHome}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 // --- Styles ---
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: BG_LIGHT_GRAY,
   },
@@ -326,29 +315,6 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingBottom: 120, // Space for footer
     paddingHorizontal: 20,
-  },
-  // Header
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: BG_LIGHT_GRAY,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: TEXT_PRIMARY,
-  },
-  headerSpacer: {
-    width: 44,
   },
   // Cart Item Card
   cardContainer: {

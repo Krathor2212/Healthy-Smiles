@@ -1,8 +1,8 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -13,9 +13,13 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import type { RootStackParamList } from '../../Navigation/types';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://192.168.137.1:4000';
 
 // --- Types and Constants ---
 
@@ -63,18 +67,59 @@ const StatBlock: React.FC<{ item: StatItem }> = ({ item }) => (
 export default function ProfileScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
-  const [userProfile, setUserProfile] = React.useState<any | null>(null);
+  const [userProfile, setUserProfile] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem('userProfile');
-        if (raw) setUserProfile(JSON.parse(raw));
-      } catch (e) {
-        console.warn('Failed to load profile', e);
+  const fetchProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        console.warn('No token found, user not authenticated');
+        setLoading(false);
+        return;
       }
-    })();
-  }, []);
+
+      const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile({
+          name: data.name || 'User',
+          email: data.email || '',
+          phone: data.phone || '',
+          avatar: data.avatar || 'https://i.pravatar.cc/300?img=40',
+          stats: {
+            height: data.height || "5'6\"",
+            weight: data.weight || '103lbs',
+          }
+        });
+      } else if (response.status === 401) {
+        await AsyncStorage.removeItem('token');
+        navigation.navigate('Login' as any);
+      } else {
+        console.error('Failed to fetch profile:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigation]);
+
+  // Fetch profile when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [fetchProfile])
+  );
 
   const handleMenuItemPress = useCallback(
     (item: MenuItem) => {
@@ -150,10 +195,17 @@ export default function ProfileScreen(): React.ReactElement {
         contentContainerStyle={[styles.scrollContent, { paddingTop: 0 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
-          <Image source={{ uri: userProfile?.avatar ?? 'https://i.pravatar.cc/300?img=40' }} style={styles.profileImage} />
-          <Text style={styles.profileName}>{userProfile?.name ?? 'Amelia Renata'}</Text>
-        </View>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#00C4CC" />
+            <Text style={styles.loadingText}>Loading profile...</Text>
+          </View>
+        ) : (
+          <>
+            <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
+              <Image source={{ uri: userProfile?.avatar ?? 'https://i.pravatar.cc/300?img=40' }} style={styles.profileImage} />
+              <Text style={styles.profileName}>{userProfile?.name ?? 'User'}</Text>
+            </View>
 
         <View style={[styles.statsContainer, { marginTop: -40 }]}>
           {(() => {
@@ -161,9 +213,9 @@ export default function ProfileScreen(): React.ReactElement {
             if (stats) {
               return (
                 <>
-                  <StatBlock item={{ id: 1, iconName: 'ruler', value: stats.height || '', label: 'Height' }} />
+                  <StatBlock item={{ id: 1, iconName: 'ruler', value: stats.height || "5'6\"", label: 'Height' }} />
                   <View style={styles.statDivider} />
-                  <StatBlock item={{ id: 2, iconName: 'weight-lifter', value: stats.weight || '', label: 'Weight' }} />
+                  <StatBlock item={{ id: 2, iconName: 'weight-lifter', value: stats.weight || '103lbs', label: 'Weight' }} />
                 </>
               );
             }
@@ -201,6 +253,8 @@ export default function ProfileScreen(): React.ReactElement {
             );
           })}
         </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -287,6 +341,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   menuItemText: { fontSize: 16, color: '#333', fontWeight: '500' },
+
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 100,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
 
   // Tab placeholder
   tabBar: {

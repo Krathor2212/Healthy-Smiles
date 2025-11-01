@@ -38,8 +38,9 @@ const io = socketIo(server, {
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Increase body parser limits for file uploads (though files use multer)
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check endpoint
 app.get('/', (req, res) => {

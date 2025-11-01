@@ -58,8 +58,11 @@ export default function PharmacyScreen() {
     image: med.image
   }));
 
-  const popularProducts = allProducts.slice(0, 4);
-  const featuredProducts = allProducts.slice(0, 4);
+  // Show more products - top rated for popular, all for featured
+  const popularProducts = allProducts
+    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    .slice(0, 10); // Show top 10 rated products
+  const featuredProducts = allProducts.slice(0, 10); // Show first 10 products
 
   useEffect(() => {
     if (searchQuery || saleProducts.length === 0) return;
@@ -148,24 +151,31 @@ export default function PharmacyScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={pstyles.section}>
-              <View style={pstyles.sectionHeader}>
-                <Text style={pstyles.sectionTitle}>Products on Sale</Text>
-                <TouchableOpacity>
-                  <Text style={pstyles.seeAllText}>See All</Text>
-                </TouchableOpacity>
+            {saleProducts.length > 0 && (
+              <View style={pstyles.section}>
+                <View style={pstyles.sectionHeader}>
+                  <Text style={pstyles.sectionTitle}>Products on Sale ({saleProducts.length})</Text>
+                  <TouchableOpacity>
+                    <Text style={pstyles.seeAllText}>See All</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList ref={flatListRef} data={saleProducts} renderItem={({ item }) => renderProductItem({ item, isOnSale: !!item.originalPrice })} keyExtractor={i => i.id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={pstyles.productsList} onScrollToIndexFailed={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })} />
               </View>
-              <FlatList ref={flatListRef} data={saleProducts} renderItem={({ item }) => renderProductItem({ item, isOnSale: !!item.originalPrice })} keyExtractor={i => i.id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={pstyles.productsList} onScrollToIndexFailed={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })} />
-            </View>
+            )}
 
             <View style={pstyles.section}>
-              <Text style={pstyles.sectionTitle}>Popular Products</Text>
+              <Text style={pstyles.sectionTitle}>Popular Products ({popularProducts.length})</Text>
               <FlatList data={popularProducts} renderItem={({ item }) => renderProductItem({ item })} keyExtractor={i => i.id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={pstyles.productsList} />
             </View>
 
             <View style={pstyles.section}>
-              <Text style={pstyles.sectionTitle}>Featured Products</Text>
+              <Text style={pstyles.sectionTitle}>Featured Products ({featuredProducts.length})</Text>
               <FlatList data={featuredProducts} renderItem={({ item }) => renderProductItem({ item })} keyExtractor={i => i.id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={pstyles.productsList} />
+            </View>
+            
+            <View style={pstyles.section}>
+              <Text style={pstyles.sectionTitle}>All Medicines ({allProducts.length})</Text>
+              <FlatList data={allProducts} renderItem={({ item }) => renderProductItem({ item, isOnSale: !!item.originalPrice })} keyExtractor={i => i.id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={pstyles.productsList} />
             </View>
           </>
         )}

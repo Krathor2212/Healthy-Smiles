@@ -5,7 +5,7 @@ export const homeStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     padding: 20,
-    paddingTop: (Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 20) + 8,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 20 : 20,
   },
   header: {
     flexDirection: "row",

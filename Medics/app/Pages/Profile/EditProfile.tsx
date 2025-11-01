@@ -85,7 +85,11 @@ export default function EditProfileScreen() {
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.8 });
+      const result = await ImagePicker.launchImageLibraryAsync({ 
+        mediaTypes: ['images'], 
+        allowsEditing: true, 
+        quality: 0.8 
+      });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const selected = result.assets[0];
         const uri = selected.uri;
