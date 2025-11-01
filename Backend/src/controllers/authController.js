@@ -315,4 +315,65 @@ async function resetPassword(req, res) {
   }
 }
 
-module.exports = { register, login, forgotPassword, verifyCode, resetPassword };
+async function doctorLogin(req, res) {
+  // { email, password } - For doctors only
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing credentials' 
+      });
+    }
+
+    const role = 'doctor';
+    
+    // Use deterministic HMAC for lookup
+    const emailHmac = computeHmac(email);
+    
+    const q = `SELECT id, password_hash, name_enc, email_enc, specialty_enc 
+               FROM doctors WHERE email_hmac = $1`;
+    const r = await db.query(q, [emailHmac]);
+    
+    if (!r.rows.length) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid email or password' 
+      });
+    }
+
+    const doctor = r.rows[0];
+    const ok = await bcrypt.compare(password, doctor.password_hash);
+    
+    if (!ok) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid email or password' 
+      });
+    }
+
+    const token = jwt.sign({ id: doctor.id, role }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '30d' });
+    
+    // Decrypt doctor data for response
+    const userData = {
+      id: doctor.id,
+      name: decryptText(doctor.name_enc),
+      email: decryptText(doctor.email_enc),
+      role,
+      specialization: doctor.specialty_enc ? decryptText(doctor.specialty_enc) : null
+    };
+
+    res.json({ 
+      token, 
+      user: userData
+    });
+  } catch (err) {
+    console.error('Doctor login error:', err);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
+  }
+}
+
+module.exports = { register, login, forgotPassword, verifyCode, resetPassword, doctorLogin };

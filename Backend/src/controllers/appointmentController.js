@@ -104,7 +104,7 @@ async function createAppointment(req, res) {
 
     // Get doctor details
     const doctorResult = await db.query(
-      'SELECT name, image, specialty, hospital, hospital_id FROM doctors_data WHERE id = $1',
+      'SELECT name, image, specialty, hospital, hospital_id, doctor_id FROM doctors_data WHERE id = $1',
       [doctorId]
     );
 
@@ -116,6 +116,9 @@ async function createAppointment(req, res) {
     }
 
     const doctor = doctorResult.rows[0];
+    
+    // Use the linked UUID doctor_id if available, otherwise use the text ID
+    const actualDoctorId = doctor.doctor_id || doctorId;
 
     // Get hospital details
     let hospitalName = doctor.hospital;
@@ -155,7 +158,7 @@ async function createAppointment(req, res) {
         hospital_name, hospital_address, payment, created_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
     `, [
-      appointmentId, userId, doctorId, doctor.name, doctor.image, doctor.specialty,
+      appointmentId, userId, actualDoctorId, doctor.name, doctor.image, doctor.specialty,
       date, time, reasonEnc, 'Confirmed',
       hospitalName, hospitalAddress, JSON.stringify(paymentData)
     ]);

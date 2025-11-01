@@ -99,12 +99,15 @@ function getLocalIPv4() {
 
 const ip = getLocalIPv4();
 
-server.listen(port, ip, () => {
+// Listen on all interfaces (0.0.0.0) to be accessible from both localhost and network
+server.listen(port, '0.0.0.0', () => {
   console.log('='.repeat(60));
   console.log('🏥 Healthy Smiles Backend Server');
   console.log('='.repeat(60));
-  console.log(`📍 HTTP Server: http://${ip}:${port}`);
-  console.log(`🔌 WebSocket Server: ws://${ip}:${port}`);
+  console.log(`📍 Localhost: http://localhost:${port}`);
+  console.log(`📍 Network: http://${ip}:${port}`);
+  console.log(`🔌 WebSocket (localhost): ws://localhost:${port}`);
+  console.log(`🔌 WebSocket (network): ws://${ip}:${port}`);
   console.log(`🔐 El Gamal encryption: Enabled`);
   console.log(`🔑 Diffie-Hellman key exchange: Enabled`);
   console.log(`📅 Started: ${new Date().toLocaleString()}`);

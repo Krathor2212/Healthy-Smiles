@@ -68,10 +68,10 @@ class DiffieHellmanChat {
    * Initialize Diffie-Hellman key exchange with client
    * @param {Socket} socket - Socket.io socket
    */
-  initializeDH(socket) {
+  async initializeDH(socket) {
     // Generate large prime p and generator g (using smaller values for demo)
     const bits = 2048;
-    const p = this.generatePrime(bits);
+    const p = await this.generatePrime(bits);
     const g = bigInt(2);
     
     // Generate server's private key (a)
@@ -226,12 +226,19 @@ class DiffieHellmanChat {
   /**
    * Generate a large prime number
    * @param {Number} bits - Number of bits
-   * @returns {BigInteger} Large prime number
+   * @returns {Promise<BigInteger>} Large prime number
    */
   generatePrime(bits) {
-    // Use node-forge to generate prime
-    const prime = forge.prime.generateProbablePrime(bits);
-    return bigInt(prime.toString(10));
+    return new Promise((resolve, reject) => {
+      // Use node-forge to generate prime with callback
+      forge.prime.generateProbablePrime(bits, (err, prime) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(bigInt(prime.toString(10)));
+        }
+      });
+    });
   }
 
   /**
