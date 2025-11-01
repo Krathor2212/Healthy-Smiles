@@ -15,9 +15,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../Navigation/types';
-import AppHeader from '../../components/AppHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import AppHeader from '../../components/AppHeader';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
+
+// --- Constants ---
+const MAIN_GREEN = '#34D399'; // A green color matching the design
+const TEXT_PRIMARY = '#1F2937';
+const TEXT_SECONDARY = '#6B7280';
+const BG_LIGHT_GRAY = '#F3F4F6';
+const BORDER_COLOR = '#E5E7EB';
 
 // --- Types ---
 
@@ -33,15 +42,6 @@ type ChatContact = {
   isOnline?: boolean;
 };
 
-const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
-
-// --- Constants ---
-const MAIN_GREEN = '#34D399'; // A green color matching the design
-const TEXT_PRIMARY = '#1F2937';
-const TEXT_SECONDARY = '#6B7280';
-const BG_LIGHT_GRAY = '#F3F4F6';
-const BORDER_COLOR = '#E5E7EB';
-
 // --- Reusable Components ---
 
 /**
@@ -50,30 +50,44 @@ const BORDER_COLOR = '#E5E7EB';
 const ChatContactCard: React.FC<{ 
   item: ChatContact;
   onPress: (item: ChatContact) => void;
-}> = ({ item, onPress }) => (
-  <TouchableOpacity style={styles.chatCard} onPress={() => onPress(item)}>
-    <Image source={{ uri: item.doctorAvatar }} style={styles.avatar} />
-    <View style={styles.chatInfo}>
-      <Text style={styles.chatName}>{item.doctorName}</Text>
-      <Text style={styles.chatLastMessage} numberOfLines={1}>
-        {item.lastMessage}
-      </Text>
-      <View style={styles.chatMeta}>
-        <Ionicons name="star" size={16} color="#F59E0B" />
-        <Text style={styles.chatRating}>{item.doctorRating}</Text>
-        <Ionicons name="location-outline" size={16} color={TEXT_SECONDARY} />
-      </View>
-    </View>
-    <View style={styles.chatRight}>
-      <Text style={styles.chatTime}>{item.lastMessageTime}</Text>
-      {item.unreadCount && item.unreadCount > 0 && (
-        <View style={styles.unreadBadge}>
-          <Text style={styles.unreadText}>{item.unreadCount}</Text>
+}> = ({ item, onPress }) => {
+  // Safely ensure all values are strings
+  const safeItem = {
+    id: String(item.id || ''),
+    doctorId: String(item.doctorId || ''),
+    doctorName: String(item.doctorName || 'Unknown Doctor'),
+    lastMessage: String(item.lastMessage || 'No messages yet'),
+    lastMessageTime: String(item.lastMessageTime || ''),
+    doctorRating: String(item.doctorRating != null ? item.doctorRating : '0'),
+    unreadCount: item.unreadCount != null ? Number(item.unreadCount) : 0,
+    doctorAvatar: String(item.doctorAvatar || 'https://i.ibb.co/L8G2JvM/female-doctor-avatar.png'),
+  };
+
+  return (
+    <TouchableOpacity style={styles.chatCard} onPress={() => onPress(item)}>
+      <Image source={{ uri: safeItem.doctorAvatar }} style={styles.avatar} />
+      <View style={styles.chatInfo}>
+        <Text style={styles.chatName}>{safeItem.doctorName}</Text>
+        <Text style={styles.chatLastMessage} numberOfLines={1}>
+          {safeItem.lastMessage}
+        </Text>
+        <View style={styles.chatMeta}>
+          <Ionicons name="star" size={16} color="#F59E0B" />
+          <Text style={styles.chatRating}>{safeItem.doctorRating}</Text>
+          <Ionicons name="location-outline" size={16} color={TEXT_SECONDARY} />
         </View>
-      )}
-    </View>
-  </TouchableOpacity>
-);
+      </View>
+      <View style={styles.chatRight}>
+        <Text style={styles.chatTime}>{safeItem.lastMessageTime}</Text>
+        {safeItem.unreadCount > 0 && (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadText}>{String(safeItem.unreadCount)}</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 // --- Main Chat Screen Component ---
 
@@ -109,6 +123,7 @@ const AllChatsScreen: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Fetched chats data:', JSON.stringify(data.contacts, null, 2));
         setContacts(data.contacts || []);
       } else if (response.status === 401) {
         // Token expired or invalid
@@ -132,9 +147,10 @@ const AllChatsScreen: React.FC = () => {
 
   const handleChatPress = (contact: ChatContact) => {
     navigation.navigate('IndividualChatScreen', {
+      chatId: contact.id,
       doctorId: contact.doctorId,
-      doctorName: contact.doctorName,
-      doctorSpeciality: `${contact.doctorRating} ⭐ General Physician`,
+      doctorName: contact.doctorName || 'Unknown Doctor',
+      doctorSpeciality: `${contact.doctorRating?.toString() || '0'} ⭐ General Physician`,
       doctorAvatar: contact.doctorAvatar,
     });
   };

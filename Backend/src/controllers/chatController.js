@@ -1,6 +1,7 @@
 const db = require('../db');
 const { v4: uuidv4 } = require('uuid');
 const { encryptText, decryptText } = require('../cryptoUtil');
+const ElGamalCrypto = require('../elgamalCrypto');
 
 /**
  * GET /api/chats
@@ -72,32 +73,57 @@ async function getChatMessages(req, res) {
 
     const chat = chatResult.rows[0];
 
-    // Get messages
+    // Get messages with file attachments
     let query = `
-      SELECT id, sender_type, sender_id, text_enc, created_at
-      FROM messages
-      WHERE chat_id = $1
+      SELECT 
+        m.id,
+        m.sender_type,
+        m.sender_id,
+        m.text_enc,
+        m.created_at,
+        m.file_id,
+        mf.filename_enc,
+        mf.mime_type,
+        mf.file_size
+      FROM messages m
+      LEFT JOIN medical_files mf ON m.file_id = mf.id
+      WHERE m.chat_id = $1
     `;
     const params = [chatId];
 
     if (before) {
-      query += ` AND created_at < (SELECT created_at FROM messages WHERE id = $${params.length + 1})`;
+      query += ` AND m.created_at < (SELECT created_at FROM messages WHERE id = $${params.length + 1})`;
       params.push(before);
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+    query += ` ORDER BY m.created_at DESC LIMIT $${params.length + 1}`;
     params.push(parseInt(limit));
 
     const result = await db.query(query, params);
 
     // Reverse to get chronological order
-    const messages = result.rows.reverse().map(msg => ({
-      id: msg.id,
-      text: decryptText(msg.text_enc),
-      time: formatTime(msg.created_at),
-      sender: msg.sender_type === 'patient' ? 'user' : 'doctor',
-      createdAt: msg.created_at
-    }));
+    const messages = result.rows.reverse().map(msg => {
+      let fileData = null;
+      if (msg.file_id) {
+        const decryptedFilename = decryptText(msg.filename_enc);
+        fileData = {
+          id: msg.file_id,
+          name: decryptedFilename,
+          mimeType: msg.mime_type,
+          size: msg.file_size,
+          url: `/api/files/${msg.file_id}`
+        };
+      }
+
+      return {
+        id: msg.id,
+        text: msg.text_enc ? decryptText(msg.text_enc) : '',
+        time: formatTime(msg.created_at),
+        sender: msg.sender_type, // 'patient' or 'doctor'
+        createdAt: msg.created_at,
+        file: fileData
+      };
+    });
 
     res.json({
       chatId,
@@ -209,4 +235,228 @@ function formatTime(timestamp) {
   }
 }
 
-module.exports = { getChats, getChatMessages, sendMessage };
+/**
+ * POST /api/chats/initiate
+ * Initiate a new chat with a doctor
+ */
+async function initiateChat(req, res) {
+  try {
+    const patientId = req.user.id;
+    const { doctorId } = req.body;
+
+    if (!doctorId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Doctor ID is required'
+      });
+    }
+
+    // Check if doctorId is from doctors_data (TEXT) or doctors (UUID)
+    let actualDoctorId = doctorId;
+    let doctorName = 'Doctor';
+    
+    // Check if it's a UUID or TEXT ID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const isUUID = uuidRegex.test(doctorId);
+
+    if (!isUUID) {
+      // It's a TEXT ID from doctors_data, look up the linked doctor UUID
+      const doctorDataResult = await db.query(
+        'SELECT doctor_id, name FROM doctors_data WHERE id = $1',
+        [doctorId]
+      );
+
+      if (doctorDataResult.rows.length > 0) {
+        doctorName = doctorDataResult.rows[0].name;
+        // Use the linked UUID if available
+        if (doctorDataResult.rows[0].doctor_id) {
+          actualDoctorId = doctorDataResult.rows[0].doctor_id;
+        } else {
+          // Doctor not linked yet - keep the TEXT ID for now
+          console.warn(`Doctor ${doctorId} from doctors_data is not linked to doctors table`);
+        }
+      } else {
+        return res.status(404).json({
+          success: false,
+          error: 'Doctor not found'
+        });
+      }
+    } else {
+      // It's already a UUID, get the doctor name
+      const doctorResult = await db.query(
+        'SELECT name_enc FROM doctors WHERE id = $1',
+        [doctorId]
+      );
+      if (doctorResult.rows.length > 0) {
+        doctorName = decryptText(doctorResult.rows[0].name_enc);
+      }
+    }
+
+    // Check if chat already exists
+    const existingChat = await db.query(
+      'SELECT id FROM chat_contacts WHERE patient_id = $1 AND doctor_id = $2',
+      [patientId, actualDoctorId]
+    );
+
+    if (existingChat.rows.length > 0) {
+      return res.json({ 
+        success: true,
+        chat: {
+          id: existingChat.rows[0].id
+        }
+      });
+    }
+
+    // Create new chat
+    const chatId = uuidv4();
+    await db.query(`
+      INSERT INTO chat_contacts (id, patient_id, doctor_id, doctor_name, doctor_rating, created_at)
+      VALUES ($1, $2, $3, $4, $5, NOW())
+    `, [chatId, patientId, actualDoctorId, doctorName, 4.5]); // Default rating
+
+    res.json({ 
+      success: true,
+      chat: {
+        id: chatId
+      }
+    });
+  } catch (err) {
+    console.error('Initiate chat error:', err);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
+  }
+}
+
+/**
+ * POST /api/chats/:chatId/upload
+ * Upload a file to a chat
+ */
+async function uploadChatFile(req, res) {
+  try {
+    const patientId = req.user.id;
+    const { chatId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'No file provided' 
+      });
+    }
+
+    // Verify patient has access to this chat
+    const chatResult = await db.query(
+      'SELECT patient_id, doctor_id FROM chat_contacts WHERE id = $1',
+      [chatId]
+    );
+
+    if (chatResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Chat not found' 
+      });
+    }
+
+    if (chatResult.rows[0].patient_id !== patientId) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Access denied' 
+      });
+    }
+
+    // Get patient's El Gamal public key
+    const patientResult = await db.query(
+      'SELECT elgamal_public_key FROM patients WHERE id = $1',
+      [patientId]
+    );
+
+    if (patientResult.rows.length === 0 || !patientResult.rows[0].elgamal_public_key) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Patient encryption keys not found' 
+      });
+    }
+
+    const publicKey = patientResult.rows[0].elgamal_public_key;
+    const fileBuffer = req.file.buffer;
+    const fileSize = fileBuffer.length;
+
+    // Encrypt file with El Gamal
+    let encrypted;
+    if (fileSize > 200) {
+      const encryptedChunks = ElGamalCrypto.encryptLargeFile(fileBuffer, publicKey);
+      encrypted = {
+        c1: JSON.stringify(encryptedChunks.map(c => c.c1)),
+        c2: JSON.stringify(encryptedChunks.map(c => c.c2))
+      };
+    } else {
+      encrypted = ElGamalCrypto.encryptFile(fileBuffer, publicKey);
+      encrypted.c1 = JSON.stringify([encrypted.c1]);
+      encrypted.c2 = JSON.stringify([encrypted.c2]);
+    }
+
+    // Encrypt filename and description
+    const filename = req.file.originalname;
+    const filenameEnc = encryptText(filename);
+    const descriptionEnc = req.body.description ? encryptText(req.body.description) : null;
+
+    // Insert file record
+    const fileId = uuidv4();
+    await db.query(`
+      INSERT INTO medical_files (
+        id, patient_id, uploaded_by_role, uploaded_by_id, 
+        filename_enc, description_enc, mime_type, file_size,
+        encrypted_c1, encrypted_c2, chat_id, uploaded_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+    `, [
+      fileId, patientId, 'patient', patientId,
+      filenameEnc, descriptionEnc, req.file.mimetype, fileSize,
+      encrypted.c1, encrypted.c2, chatId
+    ]);
+
+    // Create a message with the file
+    const messageId = uuidv4();
+    const messageText = req.body.text || '';
+    const textEnc = messageText ? encryptText(messageText) : null;
+
+    await db.query(`
+      INSERT INTO messages (id, chat_id, sender_type, sender_id, text_enc, file_id, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [messageId, chatId, 'patient', patientId, textEnc, fileId]);
+
+    // Update last message in chat_contacts
+    const lastMsg = messageText || `📎 ${filename}`;
+    await db.query(`
+      UPDATE chat_contacts 
+      SET last_message_enc = $1, last_message_time = NOW()
+      WHERE id = $2
+    `, [encryptText(lastMsg), chatId]);
+
+    // Note: Doctor notifications are not supported in current schema
+    // Notifications table only has patient_id, not a generic user_id
+    // Doctors will see the new file when they check the chat
+
+    res.json({ 
+      success: true,
+      file: {
+        id: fileId,
+        name: filename,
+        size: fileSize,
+        mimeType: req.file.mimetype
+      },
+      message: {
+        id: messageId
+      }
+    });
+  } catch (err) {
+    console.error('Upload chat file error:', err);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
+  }
+}
+
+module.exports = { getChats, getChatMessages, sendMessage, initiateChat, uploadChatFile };

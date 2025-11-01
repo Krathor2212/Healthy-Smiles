@@ -97,7 +97,7 @@ function MainNavigator() {
       
       {/* Chat Screens */}
       <Stack.Screen name="AllChatsScreen" component={withBottomNav(AllChatsScreen)} />
-      <Stack.Screen name="IndividualChatScreen" component={withBottomNav(IndividualChatScreen)} />
+      <Stack.Screen name="IndividualChatScreen" component={withoutBottomNav(IndividualChatScreen)} />
       
       {/* Prescription Screens */}
       <Stack.Screen name="Prescriptions" component={withBottomNav(PrescriptionsScreen)} />

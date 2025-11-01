@@ -25,7 +25,7 @@ const Layout: React.FC = () => {
     { path: '/appointments', icon: Calendar, label: 'Appointments' },
     { path: '/patients', icon: Users, label: 'Patients' },
     { path: '/prescriptions', icon: FileText, label: 'Prescriptions' },
-    { path: '/chat', icon: MessageSquare, label: 'Chat' },
+    { path: '/chats', icon: MessageSquare, label: 'Chats' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 

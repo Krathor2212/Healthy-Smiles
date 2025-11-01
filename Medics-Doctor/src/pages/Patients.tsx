@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Users, Search, FileText, Calendar, Phone, Mail, Eye } from 'lucide-react';
+import { Users, Search, FileText, Calendar, Phone, Mail, Eye, MessageCircle } from 'lucide-react';
 import type { Patient } from '../types';
 
 const Patients: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const navigate = useNavigate();
 
   const { data: patients, isLoading } = useQuery<Patient[]>({
     queryKey: ['patients', searchQuery],
@@ -26,6 +28,26 @@ const Patients: React.FC = () => {
     },
     enabled: !!selectedPatient,
   });
+
+  const initiateChatMutation = useMutation({
+    mutationFn: async (patientId: string) => {
+      const response = await api.post('/doctor/chats/initiate', { patientId });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Navigate to chats page with the chat selected
+      navigate(`/chats?chatId=${data.chat.id}`);
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.error || 'Failed to start chat');
+    },
+  });
+
+  const handleStartChat = () => {
+    if (selectedPatient) {
+      initiateChatMutation.mutate(selectedPatient.id);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -171,7 +193,15 @@ const Patients: React.FC = () => {
               </div>
 
               <div className="mt-6 space-y-2">
-                <button className="w-full btn-primary">
+                <button 
+                  onClick={handleStartChat}
+                  disabled={initiateChatMutation.isPending}
+                  className="w-full btn-primary"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2 inline" />
+                  {initiateChatMutation.isPending ? 'Starting Chat...' : 'Start Chat'}
+                </button>
+                <button className="w-full btn-secondary">
                   <Calendar className="w-4 h-4 mr-2 inline" />
                   View Appointments
                 </button>

@@ -6,6 +6,7 @@ export type RootStackParamList = {
   Home: undefined;
   AllChatsScreen: undefined;
   IndividualChatScreen: {
+    chatId: string;
     doctorId: string;
     doctorName: string;
     doctorSpeciality: string;

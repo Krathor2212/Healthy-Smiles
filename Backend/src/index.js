@@ -9,6 +9,7 @@ const os = require('os');
 // Import routes
 const authRoutes = require('./routes/auth');
 const doctorRoutes = require('./routes/doctor');
+const doctorChatRoutes = require('./routes/doctorChats');
 const fileRoutes = require('./routes/files');
 const appDataRoutes = require('./routes/appData');
 const profileRoutes = require('./routes/profile');
@@ -56,6 +57,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes); // Also mount under /auth for password reset
 app.use('/api/doctor', doctorRoutes);
+app.use('/api/doctor', doctorChatRoutes); // Doctor chat routes
 app.use('/api/files', fileRoutes);
 app.use('/api', appDataRoutes);
 app.use('/api/user', profileRoutes);

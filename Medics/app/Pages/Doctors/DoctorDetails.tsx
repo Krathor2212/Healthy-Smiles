@@ -8,11 +8,16 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
+  ActivityIndicator
 } from "react-native";
 import AppHeader from '../../components/AppHeader';
 import type { RootStackParamList } from '../../Navigation/types';
 import { doctorDetailStyles } from "../styles/doctorDetailStyles";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 type DoctorDetailsRouteProp = RouteProp<RootStackParamList, 'DoctorDetails'>;
 export default function DoctorDetailsScreen() {
@@ -32,6 +37,7 @@ export default function DoctorDetailsScreen() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [startingChat, setStartingChat] = useState(false);
 
   // Helper function to ensure we get a string value
   const getStringParam = (param: string | string[] | undefined): string => {
@@ -205,6 +211,47 @@ export default function DoctorDetailsScreen() {
     });
   };
 
+  const handleStartChat = async () => {
+    setStartingChat(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Please login to start a chat');
+        setStartingChat(false);
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/chats/initiate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ doctorId: doctorData.id }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Navigate to individual chat screen
+        navigation.navigate('IndividualChatScreen', {
+          chatId: data.chat.id,
+          doctorId: doctorData.id,
+          doctorName: doctorData.name,
+          doctorSpeciality: `${doctorData.rating} ⭐ ${doctorData.specialty}`,
+          doctorAvatar: doctorData.image,
+        });
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.error || 'Failed to start chat');
+      }
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      Alert.alert('Error', 'Failed to start chat. Please try again.');
+    } finally {
+      setStartingChat(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
     <AppHeader 
@@ -321,6 +368,28 @@ export default function DoctorDetailsScreen() {
           )}
         </View>
       </View>
+
+      {/* Start Chat Button */}
+      <TouchableOpacity 
+        style={[
+          doctorDetailStyles.chatButton,
+          startingChat && doctorDetailStyles.disabledButton
+        ]}
+        onPress={handleStartChat}
+        disabled={startingChat}
+      >
+        {startingChat ? (
+          <>
+            <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+            <Text style={doctorDetailStyles.chatButtonText}>Starting Chat...</Text>
+          </>
+        ) : (
+          <>
+            <Ionicons name="chatbubble-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={doctorDetailStyles.chatButtonText}>Start Chat</Text>
+          </>
+        )}
+      </TouchableOpacity>
 
       {/* Book Appointment Button */}
       <TouchableOpacity 
