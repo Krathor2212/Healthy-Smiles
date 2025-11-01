@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -13,37 +14,14 @@ import {
 } from "react-native";
 import type { RootStackParamList } from '../Navigation/types';
 import { homeStyles } from "../Pages/styles/homeStyles";
+import { useAppData } from '../contexts/AppDataContext';
 
 export default function HomeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [showArticleContent, setShowArticleContent] = useState(false);
-
-  const doctors = [
-    {
-      id: 1,
-      name: "Dr. Marcus Horizon",
-      specialty: "Cardiologist",
-      rating: 4.7,
-      distance: "800m away",
-      image: "https://cdn-icons-png.flaticon.com/512/3774/3774299.png",
-    },
-    {
-      id: 2,
-      name: "Dr. Maria Elena",
-      specialty: "Psychologist",
-      rating: 4.7,
-      distance: "1.5km away",
-      image: "https://cdn-icons-png.flaticon.com/512/3774/3774299.png",
-    },
-    {
-      id: 3,
-      name: "Dr. Stefi Jessi",
-      specialty: "Orthopedist",
-      rating: 4.7,
-      distance: "2km away",
-      image: "https://cdn-icons-png.flaticon.com/512/3774/3774299.png",
-    },
-  ];
+  
+  // Use AppDataContext instead of static data
+  const { topDoctors, articles, loading, searchQuery, setSearchQuery } = useAppData();
 
   const heartArticleContent = [
     {
@@ -178,6 +156,8 @@ export default function HomeScreen() {
           placeholder="Search doctor, drugs, articles..."
           style={homeStyles.searchInput}
           placeholderTextColor="#9CA3AF"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
       </View>
 
@@ -231,37 +211,43 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={homeStyles.horizontalScroll}
-      >
-        {doctors.map((doc) => (
+      {loading ? (
+        <View style={{ padding: 20, alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3CB179" />
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={homeStyles.horizontalScroll}
+        >
+          {topDoctors.map((doc) => (
             <TouchableOpacity
-            key={doc.id}
-            style={homeStyles.doctorCard}
-            onPress={() => navigation.navigate('DoctorDetails', {
-              doctorId: String(doc.id),
-              doctorName: doc.name,
-              specialty: doc.specialty,
-              rating: String(doc.rating),
-              distance: doc.distance,
-              image: doc.image,
-              experience: '10 years',
-            })}
-          >
-            <Image source={{ uri: doc.image }} style={homeStyles.doctorImage} />
-            <Text style={homeStyles.doctorName}>{doc.name}</Text>
-            <Text style={homeStyles.doctorSpecialty}>{doc.specialty}</Text>
-            <View style={homeStyles.doctorInfoRow}>
-              <Ionicons name="star" size={14} color="#3CB179" />
-              <Text style={homeStyles.doctorRating}>{doc.rating}</Text>
-              <Ionicons name="location-outline" size={14} color="#6B7280" />
-              <Text style={homeStyles.doctorDistance}>{doc.distance}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              key={doc.id}
+              style={homeStyles.doctorCard}
+              onPress={() => navigation.navigate('DoctorDetails', {
+                doctorId: doc.id,
+                doctorName: doc.name,
+                specialty: doc.specialty,
+                rating: String(doc.rating),
+                distance: doc.distance,
+                image: doc.image,
+                experience: doc.experience,
+              })}
+            >
+              <Image source={{ uri: doc.image }} style={homeStyles.doctorImage} />
+              <Text style={homeStyles.doctorName}>{doc.name}</Text>
+              <Text style={homeStyles.doctorSpecialty}>{doc.specialty}</Text>
+              <View style={homeStyles.doctorInfoRow}>
+                <Ionicons name="star" size={14} color="#3CB179" />
+                <Text style={homeStyles.doctorRating}>{doc.rating}</Text>
+                <Ionicons name="location-outline" size={14} color="#6B7280" />
+                <Text style={homeStyles.doctorDistance}>{doc.distance}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {/* Health Articles Section */}
       <View style={homeStyles.sectionHeader}>

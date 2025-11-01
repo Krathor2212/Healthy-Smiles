@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,12 +7,17 @@ import {
   TouchableOpacity,
   StatusBar,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../Navigation/types';
 import AppHeader from '@/app/components/AppHeader';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -20,73 +25,14 @@ type PaymentItem = {
   id: string;
   title: string;
   description: string;
-  date: string; // E.g., "20:217 2026" or "20:216 2021"
+  date: string;
   amount: number;
-  status: 'Paid' | 'Pending'; // Or 'Completed', 'Upcoming'
-  iconType: 'currency' | 'calendar'; // To determine icon
+  currency?: string;
+  status: 'Paid' | 'Pending';
+  type?: 'consultation' | 'pharmacy';
+  paymentMethod?: string;
+  transactionId?: string;
 };
-
-// --- Mock Data ---
-// Replace this with your API data
-const UPCOMING_PAYMENTS: PaymentItem[] = [
-  {
-    id: 'u1',
-    title: 'Dr. Sarah Johnson',
-    description: 'Consultation with Dr. Johnson',
-    date: '20:217 2026',
-    amount: 800,
-    status: 'Pending',
-    iconType: 'currency',
-  },
-  {
-    id: 'u2',
-    title: 'Annual Check-up',
-    description: 'Clinic visit for annual check-up',
-    date: '10:00 2024',
-    amount: 1200,
-    status: 'Pending',
-    iconType: 'calendar',
-  },
-];
-
-const COMPLETED_PAYMENTS: PaymentItem[] = [
-  {
-    id: 'c1',
-    title: 'Dr. Sarah Johnson',
-    description: 'Paid for consultation',
-    date: '20:217 2026',
-    amount: 120, // Sample INR
-    status: 'Paid',
-    iconType: 'currency',
-  },
-  {
-    id: 'c2',
-    title: 'Clinic Visit',
-    description: 'Billing for check-up',
-    date: '20:217 2023',
-    amount: 55.50, // Sample INR
-    status: 'Paid',
-    iconType: 'calendar',
-  },
-  {
-    id: 'c3',
-    title: 'Medication Refill',
-    description: 'Billing for check-up',
-    date: '20:216 2021',
-    amount: 55.50, // Sample INR
-    status: 'Paid',
-    iconType: 'currency',
-  },
-  {
-    id: 'c4',
-    title: 'Medication Refill',
-    description: 'Billing for check-up',
-    date: '20:216 2021',
-    amount: 55.00, // Sample INR
-    status: 'Paid',
-    iconType: 'currency',
-  },
-];
 
 // --- Constants ---
 const MAIN_GREEN = '#34D399';
@@ -117,7 +63,7 @@ const PaymentHistoryHeader: React.FC<{ onBackPress: () => void }> = ({ onBackPre
  */
 const PaymentItemCard: React.FC<{ item: PaymentItem }> = ({ item }) => {
   const isPaid = item.status === 'Paid';
-  const iconName = item.iconType === 'currency' ? 'currency-inr' : 'calendar-month-outline';
+  const iconName = item.type === 'pharmacy' ? 'pill' : 'calendar-month-outline';
 
   return (
     <View style={styles.cardContainer}>
@@ -126,16 +72,15 @@ const PaymentItemCard: React.FC<{ item: PaymentItem }> = ({ item }) => {
           name={iconName as any}
           size={26}
           color={MAIN_GREEN}
-          style={{ transform: [{ translateY: item.iconType === 'currency' ? 1 : 0 }] }} // Adjust INR icon position slightly
         />
       </View>
       <View style={styles.cardInfo}>
         <Text style={styles.cardTitle}>{item.title}</Text>
         <Text style={styles.cardDescription}>{item.description}</Text>
-        <Text style={styles.cardDate}>{item.date}</Text>
+        <Text style={styles.cardDate}>{formatPaymentDate(item.date)}</Text>
       </View>
       <View style={styles.cardRight}>
-        <Text style={styles.cardAmount}>₹{item.amount.toFixed(2)}</Text>
+        <Text style={styles.cardAmount}>{item.currency || '₹'}{item.amount.toFixed(2)}</Text>
         <View style={[styles.statusBadge, isPaid ? styles.paidBadge : styles.pendingBadge]}>
           <Text style={[styles.statusText, isPaid ? styles.paidText : styles.pendingText]}>
             {item.status}
@@ -146,11 +91,66 @@ const PaymentItemCard: React.FC<{ item: PaymentItem }> = ({ item }) => {
   );
 };
 
+const formatPaymentDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
 // --- Main Payment History Screen Component ---
 
 const PaymentHistoryScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [selectedTab, setSelectedTab] = useState<'upcoming' | 'completed'>('completed');
+  const [upcomingPayments, setUpcomingPayments] = useState<PaymentItem[]>([]);
+  const [completedPayments, setCompletedPayments] = useState<PaymentItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        console.warn('No token found, user not authenticated');
+        setUpcomingPayments([]);
+        setCompletedPayments([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/payments`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUpcomingPayments(data.payments?.upcoming || []);
+        setCompletedPayments(data.payments?.completed || []);
+      } else if (response.status === 401) {
+        await AsyncStorage.removeItem('token');
+        setUpcomingPayments([]);
+        setCompletedPayments([]);
+      } else {
+        console.error('Failed to fetch payments:', response.status);
+        setUpcomingPayments([]);
+        setCompletedPayments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      setUpcomingPayments([]);
+      setCompletedPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBackPress = () => {
     if (navigation.canGoBack()) {
@@ -160,7 +160,7 @@ const PaymentHistoryScreen: React.FC = () => {
     }
   };
 
-  const currentPayments = selectedTab === 'upcoming' ? UPCOMING_PAYMENTS : COMPLETED_PAYMENTS;
+  const currentPayments = selectedTab === 'upcoming' ? upcomingPayments : completedPayments;
 
   return (
     <View style={styles.safeArea}>
@@ -200,16 +200,26 @@ const PaymentHistoryScreen: React.FC = () => {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <FlatList
-          data={currentPayments}
-          renderItem={({ item }) => <PaymentItemCard item={item} />}
-          keyExtractor={item => item.id}
-          scrollEnabled={false} // Let the outer ScrollView handle scrolling
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={() => (
-            <Text style={styles.emptyListText}>No {selectedTab} payments found.</Text>
-          )}
-        />
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={MAIN_GREEN} />
+            <Text style={styles.loadingText}>Loading payments...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={currentPayments}
+            renderItem={({ item }) => <PaymentItemCard item={item} />}
+            keyExtractor={item => item.id}
+            scrollEnabled={false}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <Feather name="credit-card" size={64} color={TEXT_SECONDARY} />
+                <Text style={styles.emptyText}>No {selectedTab} payments found</Text>
+              </View>
+            )}
+          />
+        )}
       </ScrollView>
     </View>
   );
@@ -357,6 +367,28 @@ const styles = StyleSheet.create({
     marginTop: 30,
     fontSize: 16,
     color: TEXT_SECONDARY,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: TEXT_SECONDARY,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    marginTop: 16,
+    textAlign: 'center',
   },
 });
 

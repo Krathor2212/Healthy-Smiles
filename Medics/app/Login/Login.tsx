@@ -18,6 +18,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppData } from '../contexts/AppDataContext';
 
 export default function LoginScreen({ navigation }: { navigation: NavigationProp<any> }) {
   // Default role set to 'patient' — role selection removed
@@ -27,6 +28,9 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState('');
+
+  // Get refreshData from AppDataContext to fetch data after login
+  const { refreshData } = useAppData();
 
   // --- Handlers ---
   const handleLogin = async () => {
@@ -39,10 +43,10 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
     setLoading(true);
     try {
       const backend = (Constants.expoConfig?.extra?.BACKEND_URL || (Constants.manifest as any)?.extra?.BACKEND_URL) || 'http://10.11.146.215:4000';
-      const resp = await fetch(`${backend.replace(/\/$/, '')}/login`, {
+      const resp = await fetch(`${backend.replace(/\/$/, '')}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'patient', email, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await resp.json().catch(() => ({}));
@@ -70,6 +74,10 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
         await AsyncStorage.setItem('savedPassword', password);
         // save email for auto-login
         await AsyncStorage.setItem('savedEmail', email);
+        
+        // Fetch app data after successful login
+        console.log('✅ Login successful, fetching app data...');
+        await refreshData();
       } catch (e) {
         // non-fatal, still proceed
         console.warn('Failed to save token/session', e);

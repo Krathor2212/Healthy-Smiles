@@ -45,12 +45,14 @@ export type RootStackParamList = {
     longitude: number;
   } | undefined;
   Appointment: {
+    doctorId?: string;
     doctorName?: string;
     specialty?: string;
     rating?: string;
     distance?: string;
     image?: string;
     date?: string;
+    dateISO?: string;
     time?: string;
     reason?: string;
   } | undefined;

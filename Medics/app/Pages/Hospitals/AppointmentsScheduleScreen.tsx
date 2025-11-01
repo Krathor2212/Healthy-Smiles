@@ -9,10 +9,15 @@ import {
     Text,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from "react-native";
 import AppHeader from "@/app/components/AppHeader";
 import { StyleSheet } from "react-native";
 import type { RootStackParamList } from '../../Navigation/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 interface Appointment {
   id: string;
@@ -29,49 +34,71 @@ export default function AppointmentsScheduleScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>("upcoming");
+  const [loading, setLoading] = useState(true);
 
   const handleBack = () => {
     navigation.goBack();
   };
 
-  // Auto-mark appointments as completed if time has passed
   useEffect(() => {
-    const checkAppointmentTimes = () => {
-      const now = new Date();
-      setAppointments(prev => 
-        prev.map(app => {
-          if (app.status === "Confirmed") {
-            // Parse the appointment date and time (assuming format "DD/MM/YYYY" and "HH:MM AM/PM")
-            const [day, month, year] = app.date.split('/');
-            const [time, period] = app.time.split(' ');
-            let [hours, minutes] = time.split(':').map(Number);
-            
-            // Convert to 24-hour format
-            if (period === 'PM' && hours !== 12) hours += 12;
-            if (period === 'AM' && hours === 12) hours = 0;
-            
-            const appointmentDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hours, minutes);
-            
-            // If appointment time has passed, mark as completed
-            if (appointmentDate < now) {
-              return { ...app, status: "Completed" as const };
-            }
-          }
-          return app;
-        })
-      );
-    };
-
-    // Check initially
-    checkAppointmentTimes();
-    
-    // Check every minute
-    const interval = setInterval(checkAppointmentTimes, 60000);
-    
-    return () => clearInterval(interval);
+    fetchAppointments();
   }, []);
 
-  const handleCancel = (appointmentId: string, doctorName: string) => {
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        console.warn('No token found, user not authenticated');
+        setAppointments([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/appointments`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const formattedAppointments = (data.appointments || []).map((apt: any) => ({
+          id: apt.id,
+          doctorName: apt.doctorName,
+          specialty: apt.specialty,
+          date: formatDate(apt.date),
+          time: apt.time,
+          status: apt.status,
+        }));
+        setAppointments(formattedAppointments);
+      } else if (response.status === 401) {
+        await AsyncStorage.removeItem('token');
+        setAppointments([]);
+      } else {
+        console.error('Failed to fetch appointments:', response.status);
+        setAppointments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const handleCancel = async (appointmentId: string, doctorName: string) => {
     Alert.alert(
       "Cancel Appointment",
       `Are you sure you want to cancel your appointment with ${doctorName}?`,
@@ -79,21 +106,44 @@ export default function AppointmentsScheduleScreen() {
         { text: "No", style: "cancel" },
         {
           text: "Yes",
-          onPress: () => {
-            setAppointments(prev =>
-              prev.map(app =>
-                app.id === appointmentId
-                  ? { ...app, status: "Canceled" as const }
-                  : app
-              )
-            );
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              if (!token) return;
+
+              const response = await fetch(`${BACKEND_URL}/api/appointments/${appointmentId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: 'Canceled' }),
+              });
+
+              if (response.ok) {
+                setAppointments(prev =>
+                  prev.map(app =>
+                    app.id === appointmentId
+                      ? { ...app, status: "Canceled" as const }
+                      : app
+                  )
+                );
+                Alert.alert('Success', 'Appointment canceled successfully');
+              } else {
+                const errorData = await response.json();
+                Alert.alert('Error', errorData.error || 'Failed to cancel appointment');
+              }
+            } catch (error) {
+              console.error('Error canceling appointment:', error);
+              Alert.alert('Error', 'Failed to cancel appointment. Please check your connection.');
+            }
           },
         },
       ]
     );
   };
 
-  const handleMarkComplete = (appointmentId: string, doctorName: string) => {
+  const handleMarkComplete = async (appointmentId: string, doctorName: string) => {
     Alert.alert(
       "Mark as Complete",
       `Mark appointment with ${doctorName} as completed?`,
@@ -101,14 +151,37 @@ export default function AppointmentsScheduleScreen() {
         { text: "No", style: "cancel" },
         {
           text: "Yes",
-          onPress: () => {
-            setAppointments(prev =>
-              prev.map(app =>
-                app.id === appointmentId
-                  ? { ...app, status: "Completed" as const }
-                  : app
-              )
-            );
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              if (!token) return;
+
+              const response = await fetch(`${BACKEND_URL}/api/appointments/${appointmentId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: 'Completed' }),
+              });
+
+              if (response.ok) {
+                setAppointments(prev =>
+                  prev.map(app =>
+                    app.id === appointmentId
+                      ? { ...app, status: "Completed" as const }
+                      : app
+                  )
+                );
+                Alert.alert('Success', 'Appointment marked as complete');
+              } else {
+                const errorData = await response.json();
+                Alert.alert('Error', errorData.error || 'Failed to mark appointment as complete');
+              }
+            } catch (error) {
+              console.error('Error completing appointment:', error);
+              Alert.alert('Error', 'Failed to mark appointment as complete. Please check your connection.');
+            }
           },
         },
       ]
@@ -262,7 +335,12 @@ export default function AppointmentsScheduleScreen() {
           </Text>
 
           {/* Appointments for active tab */}
-          {getAppointmentsForActiveTab().length > 0 ? (
+          {loading ? (
+            <View style={scheduleStyles.loadingContainer}>
+              <ActivityIndicator size="large" color="#3CB179" />
+              <Text style={scheduleStyles.loadingText}>Loading appointments...</Text>
+            </View>
+          ) : getAppointmentsForActiveTab().length > 0 ? (
             getAppointmentsForActiveTab().map(renderAppointmentCard)
           ) : (
             <View style={scheduleStyles.emptyState}>
@@ -456,5 +534,15 @@ tabText: {
 activeTabText: {
   color: "#3CB179",
   fontWeight: "600",
+},
+loadingContainer: {
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 40,
+},
+loadingText: {
+  marginTop: 12,
+  fontSize: 16,
+  color: '#6B7280',
 },
 });

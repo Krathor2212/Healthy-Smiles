@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,79 +9,31 @@ import {
   StatusBar,
   FlatList,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../Navigation/types';
 import AppHeader from '../../components/AppHeader';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 // --- Types ---
 
 type ChatContact = {
   id: string;
-  name: string;
+  doctorId: string;
+  doctorName: string;
   lastMessage: string;
-  time: string;
-  rating: number;
+  lastMessageTime: string;
+  doctorRating: number;
   unreadCount?: number;
-  avatar: string; // URL for the avatar image
+  doctorAvatar: string;
+  isOnline?: boolean;
 };
 
-// --- Mock Data ---
-// Replace this with your API data
-const CHAT_CONTACTS: ChatContact[] = [
-  {
-    id: '1',
-    name: 'Dr. Sarah Johnson',
-    lastMessage: 'Okay, see you then!',
-    time: '10:30 AM',
-    rating: 4.7,
-    avatar: 'https://i.ibb.co/L8G2JvM/female-doctor-avatar.png', // Example avatar
-  },
-  {
-    id: '2',
-    name: 'Dr. Michael Chen',
-    lastMessage: 'Okay, see you then!',
-    time: '10:30 AM',
-    rating: 4.7,
-    avatar: 'https://i.ibb.co/r760Vd0/male-doctor-avatar.png', // Example avatar
-  },
-  {
-    id: '3',
-    name: 'Dr. Michael Chen',
-    lastMessage: 'Okay, see you then!',
-    time: '10:30 AM',
-    rating: 4.7,
-    unreadCount: 1,
-    avatar: 'https://i.ibb.co/r760Vd0/male-doctor-avatar.png', // Example avatar
-  },
-  {
-    id: '4',
-    name: 'Dr. Sarah Johnson',
-    lastMessage: 'Okay, see you then!',
-    time: '10:30 AM',
-    rating: 4.7,
-    avatar: 'https://i.ibb.co/L8G2JvM/female-doctor-avatar.png', // Example avatar
-  },
-  {
-    id: '5',
-    name: 'Dr. Emily Davis',
-    lastMessage: 'Okay, bush clinter',
-    time: '10:30 AM',
-    rating: 3.7,
-    avatar: 'https://i.ibb.co/q041Y5W/male-doctor-avatar-2.png', // Another example avatar
-  },
-  {
-    id: '6',
-    name: 'Dr. Ben Carter',
-    lastMessage: 'Energen viorals for mations',
-    time: '10:30 AM',
-    rating: 4.7,
-    unreadCount: 1,
-    avatar: 'https://i.ibb.co/c20f1Qj/male-doctor-avatar-3.png', // Another example avatar
-  },
-];
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 // --- Constants ---
 const MAIN_GREEN = '#34D399'; // A green color matching the design
@@ -100,21 +52,21 @@ const ChatContactCard: React.FC<{
   onPress: (item: ChatContact) => void;
 }> = ({ item, onPress }) => (
   <TouchableOpacity style={styles.chatCard} onPress={() => onPress(item)}>
-    <Image source={{ uri: item.avatar }} style={styles.avatar} />
+    <Image source={{ uri: item.doctorAvatar }} style={styles.avatar} />
     <View style={styles.chatInfo}>
-      <Text style={styles.chatName}>{item.name}</Text>
+      <Text style={styles.chatName}>{item.doctorName}</Text>
       <Text style={styles.chatLastMessage} numberOfLines={1}>
         {item.lastMessage}
       </Text>
       <View style={styles.chatMeta}>
         <Ionicons name="star" size={16} color="#F59E0B" />
-        <Text style={styles.chatRating}>{item.rating}</Text>
+        <Text style={styles.chatRating}>{item.doctorRating}</Text>
         <Ionicons name="location-outline" size={16} color={TEXT_SECONDARY} />
       </View>
     </View>
     <View style={styles.chatRight}>
-      <Text style={styles.chatTime}>{item.time}</Text>
-      {item.unreadCount && (
+      <Text style={styles.chatTime}>{item.lastMessageTime}</Text>
+      {item.unreadCount && item.unreadCount > 0 && (
         <View style={styles.unreadBadge}>
           <Text style={styles.unreadText}>{item.unreadCount}</Text>
         </View>
@@ -128,6 +80,51 @@ const ChatContactCard: React.FC<{
 const AllChatsScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [contacts, setContacts] = useState<ChatContact[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchChats();
+  }, []);
+
+  const fetchChats = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        console.warn('No token found, user not authenticated');
+        setContacts([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/chats`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data.contacts || []);
+      } else if (response.status === 401) {
+        // Token expired or invalid
+        await AsyncStorage.removeItem('token');
+        setContacts([]);
+      } else {
+        console.error('Failed to fetch chats:', response.status);
+        setContacts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      setContacts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBack = () => {
     navigation.goBack();
@@ -135,16 +132,16 @@ const AllChatsScreen: React.FC = () => {
 
   const handleChatPress = (contact: ChatContact) => {
     navigation.navigate('IndividualChatScreen', {
-      doctorId: contact.id,
-      doctorName: contact.name,
-      doctorSpeciality: `${contact.rating} ⭐ General Physician`, // You can customize this
-      doctorAvatar: contact.avatar,
+      doctorId: contact.doctorId,
+      doctorName: contact.doctorName,
+      doctorSpeciality: `${contact.doctorRating} ⭐ General Physician`,
+      doctorAvatar: contact.doctorAvatar,
     });
   };
 
   // Filter contacts based on search query
-  const filteredContacts = CHAT_CONTACTS.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredContacts = contacts.filter(contact =>
+    contact.doctorName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -172,13 +169,30 @@ const AllChatsScreen: React.FC = () => {
 
         {/* Chat Contacts List */}
         <View style={styles.listContainer}>
-          <FlatList
-            data={filteredContacts}
-            renderItem={({ item }) => <ChatContactCard item={item} onPress={handleChatPress} />}
-            keyExtractor={item => item.id}
-            scrollEnabled={false} // Disable inner scrolling, let outer ScrollView handle it
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={MAIN_GREEN} />
+              <Text style={styles.loadingText}>Loading chats...</Text>
+            </View>
+          ) : filteredContacts.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="chatbubbles-outline" size={64} color={TEXT_SECONDARY} />
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'No chats found' : 'No chats yet'}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {searchQuery ? 'Try a different search term' : 'Start a conversation with a doctor'}
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredContacts}
+              renderItem={({ item }) => <ChatContactCard item={item} onPress={handleChatPress} />}
+              keyExtractor={item => item.id}
+              scrollEnabled={false}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+            />
+          )}
         </View>
       </ScrollView>
     </View>
@@ -300,6 +314,33 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: TEXT_SECONDARY,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 

@@ -5,9 +5,12 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import AppHeader from '../../components/AppHeader';
 import type { RootStackParamList } from '../../Navigation/types';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -16,37 +19,63 @@ type UserProfile = {
   email: string;
   phone: string;
   avatar?: string;
-  stats?: {
-    height?: string;
-    weight?: string;
-  };
+  dob?: string;
+  height?: string;
+  weight?: string;
 };
-
-const STORAGE_KEY = 'userProfile';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', phone: '' });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as UserProfile;
-          setProfile((p) => ({ ...p, ...parsed }));
-        } else {
-          // sensible defaults
-          setProfile({ name: 'Amelia Renata', email: 'amelia@example.com', phone: '+1 555 123 4567', stats: { height: '5\'6"', weight: '103lbs' } });
-        }
-      } catch (e) {
-        console.warn('Failed to load profile', e);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchProfile();
   }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        console.warn('No token found, user not authenticated');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProfile({
+          name: data.name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          avatar: data.avatar || undefined,
+          dob: data.dob || undefined,
+          height: data.height || undefined,
+          weight: data.weight || undefined,
+        });
+      } else if (response.status === 401) {
+        await AsyncStorage.removeItem('token');
+        navigation.navigate('Login');
+      } else {
+        console.error('Failed to fetch profile:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const pickImage = async () => {
     try {
@@ -74,11 +103,48 @@ export default function EditProfileScreen() {
 
   const handleSave = async () => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-      navigation.goBack();
-    } catch (e) {
-      console.warn('Failed to save profile', e);
-      Alert.alert('Error', 'Failed to save profile.');
+      setSaving(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        Alert.alert('Error', 'Please login again');
+        navigation.navigate('Login');
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: profile.name,
+          phone: profile.phone,
+          dob: profile.dob,
+          height: profile.height,
+          weight: profile.weight,
+          avatar: profile.avatar,
+        }),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Profile updated successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else if (response.status === 401) {
+        await AsyncStorage.removeItem('token');
+        Alert.alert('Session Expired', 'Please login again');
+        navigation.navigate('Login');
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -111,22 +177,40 @@ export default function EditProfileScreen() {
           <Text style={styles.label}>Full name</Text>
           <TextInput style={styles.input} value={profile.name} onChangeText={(t) => setProfile((p) => ({ ...p, name: t }))} placeholder="Full name" />
 
-          <Text style={styles.label}>Email</Text>
-          <TextInput style={styles.input} value={profile.email} onChangeText={(t) => setProfile((p) => ({ ...p, email: t }))} placeholder="Email" keyboardType="email-address" />
+          <Text style={styles.label}>Email (read-only)</Text>
+          <TextInput 
+            style={[styles.input, styles.readOnlyInput]} 
+            value={profile.email} 
+            placeholder="Email" 
+            editable={false}
+          />
 
           <Text style={styles.label}>Phone</Text>
           <TextInput style={styles.input} value={profile.phone} onChangeText={(t) => setProfile((p) => ({ ...p, phone: t }))} placeholder="Phone" keyboardType="phone-pad" />
 
+          <Text style={styles.label}>Date of Birth</Text>
+          <TextInput style={styles.input} value={profile.dob ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, dob: t }))} placeholder="e.g. 1990-01-15" />
+
           <Text style={[styles.sectionTitle, { marginTop: 6 }]}>Health details</Text>
           <Text style={styles.label}>Height</Text>
-          <TextInput style={styles.input} value={profile.stats?.height ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, stats: { ...(p.stats || {}), height: t } }))} placeholder="e.g. 5'6&quot; or 170cm" />
+          <TextInput style={styles.input} value={profile.height ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, height: t }))} placeholder="e.g. 5'6&quot; or 170cm" />
 
           <Text style={styles.label}>Weight</Text>
-          <TextInput style={styles.input} value={profile.stats?.weight ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, stats: { ...(p.stats || {}), weight: t } }))} placeholder="e.g. 70kg" />
+          <TextInput style={styles.input} value={profile.weight ?? ''} onChangeText={(t) => setProfile((p) => ({ ...p, weight: t }))} placeholder="e.g. 70kg" />
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.saveText}>Save</Text>
+          <TouchableOpacity 
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.saveText}>Save</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -143,7 +227,9 @@ const styles = StyleSheet.create({
   form: { marginTop: 16 },
   label: { fontSize: 14, color: '#374151', marginBottom: 6 },
   input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, marginBottom: 12, backgroundColor: '#fff' },
+  readOnlyInput: { backgroundColor: '#F3F4F6', color: '#6B7280' },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1F2937', marginTop: 12 },
   saveButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#00C4CC', paddingVertical: 12, borderRadius: 10, marginTop: 8 },
+  saveButtonDisabled: { backgroundColor: '#9CA3AF', opacity: 0.6 },
   saveText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

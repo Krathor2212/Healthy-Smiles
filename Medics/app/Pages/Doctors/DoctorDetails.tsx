@@ -192,12 +192,14 @@ export default function DoctorDetailsScreen() {
 
     // Navigate to appointment page with all necessary data
     navigation.navigate("Appointment" as any, {
+      doctorId: doctorData.id,
       doctorName: doctorData.name,
       specialty: doctorData.specialty,
       rating: doctorData.rating,
       distance: doctorData.distance,
       image: doctorData.image,
       date: selectedDateObj.fullDate,
+      dateISO: selectedDateObj.dateObj.toISOString().split('T')[0], // "YYYY-MM-DD"
       time: selectedTime,
       reason: "General Consultation",
     });

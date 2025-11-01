@@ -19,9 +19,13 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../Navigation/types';
+import { useAppData } from '../contexts/AppDataContext';
 
 const SignUpScreen = () => {
+  // Get refreshData from AppDataContext to fetch data after signup
+  const { refreshData } = useAppData();
+  
   const backScale = useRef(new Animated.Value(1)).current;
   const headerSlide = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -62,11 +66,10 @@ const SignUpScreen = () => {
     setLoading(true);
     try {
       const backend = (Constants.expoConfig?.extra?.BACKEND_URL || (Constants.manifest as any)?.extra?.BACKEND_URL) || 'http://10.11.146.215:4000';
-      const res = await fetch(`${backend.replace(/\/$/, '')}/register`, {
+      const res = await fetch(`${backend.replace(/\/$/, '')}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: 'patient',
           name: name.trim(),
           email: email.trim(),
           password,
@@ -91,6 +94,10 @@ const SignUpScreen = () => {
         await AsyncStorage.setItem('hasSession', 'true');
         await AsyncStorage.setItem('savedPassword', password);
         await AsyncStorage.setItem('savedEmail', email);
+        
+        // Fetch app data after successful signup
+        console.log('✅ Signup successful, fetching app data...');
+        await refreshData();
       } catch (e) {
         console.warn('Failed to persist token', e);
       }

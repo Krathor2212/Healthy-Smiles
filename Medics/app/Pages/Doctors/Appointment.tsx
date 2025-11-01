@@ -2,10 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from "react";
-import { Alert, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Modal, ScrollView, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import AppHeader from '../../components/AppHeader';
-import type { RootStackParamList } from '../../navigation/types';
+import type { RootStackParamList } from '../../Navigation/types';
 import appointmentStyles from "../styles/appointmentStyles";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 type AppointmentRouteProp = RouteProp<RootStackParamList, 'Appointment'>;
 type NavigationProp = StackNavigationProp<RootStackParamList>;
@@ -16,9 +20,11 @@ export default function AppointmentScreen() {
   const params = route.params || {};
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [selectedReason, setSelectedReason] = useState(params.reason as string || "General Consultation");
+  const [booking, setBooking] = useState(false);
 
   // Get appointment data from navigation params
   const appointmentData = {
+    doctorId: params.doctorId as string || "",
     doctorName: params.doctorName as string || "Dr. Marcus Horizon",
     specialty: params.specialty as string || "Cardiologist",
     rating: params.rating as string || "4.7",
@@ -56,7 +62,9 @@ export default function AppointmentScreen() {
 
   const totalAmount = "₹550.00";
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
+    if (booking) return; // Prevent double booking
+
     Alert.alert(
       "Confirm Booking",
       `Confirm appointment with ${appointmentData.doctorName} on ${appointmentData.date} at ${appointmentData.time} for ${appointmentData.reason}?`,
@@ -64,13 +72,119 @@ export default function AppointmentScreen() {
         { text: "Cancel", style: "cancel" },
         { 
           text: "Confirm Booking", 
-          onPress: () => {
-                  Alert.alert("Success", "Appointment booked successfully!");
-                  (navigation as any).navigate('Home');
-                }
+          onPress: async () => {
+            try {
+              setBooking(true);
+              const token = await AsyncStorage.getItem('token');
+              
+              if (!token) {
+                Alert.alert('Error', 'Please login to book an appointment');
+                navigation.navigate('Login');
+                return;
+              }
+
+              // Use the pre-formatted ISO date if available, otherwise format it
+              const formattedDate = params.dateISO || formatDateForBackend(appointmentData.date);
+
+              console.log('Booking appointment with date:', formattedDate);
+
+              const response = await fetch(`${BACKEND_URL}/api/appointments`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  doctorId: appointmentData.doctorId,
+                  date: formattedDate,
+                  time: appointmentData.time,
+                  reason: appointmentData.reason,
+                  payment: {
+                    consultation: 500.00,
+                    adminFee: 50.00,
+                    discount: 0,
+                    total: 550.00,
+                    currency: '₹',
+                    paymentMethod: 'VISA',
+                    isPaid: false
+                  }
+                }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                Alert.alert(
+                  "Success", 
+                  "Appointment booked successfully!",
+                  [
+                    {
+                      text: "OK",
+                      onPress: () => {
+                        // Navigate to Profile page where user can access appointments
+                        (navigation as any).navigate('Profile');
+                      }
+                    }
+                  ]
+                );
+              } else if (response.status === 401) {
+                await AsyncStorage.removeItem('token');
+                Alert.alert('Session Expired', 'Please login again');
+                navigation.navigate('Login');
+              } else {
+                const errorData = await response.json();
+                Alert.alert('Booking Failed', errorData.error || 'Failed to book appointment. Please try again.');
+              }
+            } catch (error) {
+              console.error('Booking error:', error);
+              Alert.alert('Error', 'Failed to book appointment. Please check your connection and try again.');
+            } finally {
+              setBooking(false);
+            }
+          }
         },
       ]
     );
+  };
+
+  // Helper function to convert date format
+  const formatDateForBackend = (dateString: string): string => {
+    // Input format: "Wednesday, Jun 23, 2021" or "23/06/2021" or other formats
+    // Output format: "2021-06-23"
+    try {
+      console.log('Input date string:', dateString);
+      
+      // Try to parse the date
+      const date = new Date(dateString);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date, using current date');
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formatted = `${year}-${month}-${day}`;
+        console.log('Formatted date (fallback):', formatted);
+        return formatted;
+      }
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const formatted = `${year}-${month}-${day}`;
+      console.log('Formatted date:', formatted);
+      return formatted;
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      // Fallback to current date
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const formatted = `${year}-${month}-${day}`;
+      console.log('Formatted date (error fallback):', formatted);
+      return formatted;
+    }
   };
 
   const handleDateChange = () => {
@@ -189,8 +303,19 @@ export default function AppointmentScreen() {
           <Text style={appointmentStyles.totalFooterLabel}>Total</Text>
           <Text style={appointmentStyles.totalFooterAmount}>{totalAmount}</Text>
         </View>
-        <TouchableOpacity style={appointmentStyles.bookingButton} onPress={handleBooking}>
-          <Text style={appointmentStyles.bookingButtonText}>Booking</Text>
+        <TouchableOpacity 
+          style={[
+            appointmentStyles.bookingButton,
+            booking && { opacity: 0.6 }
+          ]} 
+          onPress={handleBooking}
+          disabled={booking}
+        >
+          {booking ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={appointmentStyles.bookingButtonText}>Booking</Text>
+          )}
         </TouchableOpacity>
       </View>
 

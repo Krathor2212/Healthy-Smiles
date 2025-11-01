@@ -84,7 +84,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
   
   getTotalPrice: () => {
     return get().items.reduce((total, item) => {
-      const price = parseFloat(item.product.price.replace('$', ''));
+      // Remove currency symbol (₹ or $) and parse the number
+      const price = parseFloat(item.product.price.replace(/[₹$]/g, ''));
       return total + (price * item.quantity);
     }, 0);
   }
