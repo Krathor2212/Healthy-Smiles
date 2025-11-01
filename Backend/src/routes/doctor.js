@@ -8,7 +8,8 @@ const {
   getAllAppointments,
   updateAppointmentStatus,
   getPatients,
-  searchMedicines
+  searchMedicines,
+  getAllDoctors
 } = require('../controllers/doctorController');
 
 // GET /api/doctor/stats
@@ -31,5 +32,8 @@ router.get('/medicines', auth(true), searchMedicines);
 
 // GET /api/doctor/patients/:patientId/profile
 router.get('/patients/:patientId/profile', auth(true), getPatientProfileForDoctor);
+
+// GET /api/doctors - Get all doctors (for patient authorization)
+router.get('/', auth(true), getAllDoctors);
 
 module.exports = router;

@@ -318,6 +318,41 @@ async function searchMedicines(req, res) {
   }
 }
 
+/**
+ * Get all doctors (for patient to select for authorization)
+ */
+async function getAllDoctors(req, res) {
+  try {
+    // Only allow patients to access this endpoint
+    if (req.user.role !== 'patient') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const result = await db.query(`
+      SELECT 
+        id,
+        name_enc,
+        specialty_enc,
+        email_enc
+      FROM doctors
+      ORDER BY name_enc ASC
+    `);
+
+    // Decrypt doctor information
+    const doctors = result.rows.map(row => ({
+      id: row.id,
+      name: row.name_enc ? decryptText(row.name_enc) : 'Unknown',
+      specialty: row.specialty_enc ? decryptText(row.specialty_enc) : '',
+      email: row.email_enc ? decryptText(row.email_enc) : ''
+    }));
+
+    res.json({ doctors });
+  } catch (err) {
+    console.error('Get all doctors error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 module.exports = { 
   getPatientProfileForDoctor,
   getDoctorStats,
@@ -325,5 +360,6 @@ module.exports = {
   getAllAppointments,
   updateAppointmentStatus,
   getPatients,
-  searchMedicines
+  searchMedicines,
+  getAllDoctors
 };

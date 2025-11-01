@@ -20,6 +20,8 @@ const paymentRoutes = require('./routes/payments');
 const notificationRoutes = require('./routes/notifications');
 const faqRoutes = require('./routes/faqs');
 const prescriptionRoutes = require('./routes/prescriptions');
+const authorizationRoutes = require('./routes/authorizations');
+const accessRequestRoutes = require('./routes/accessRequests');
 
 // Import controllers
 const { register, login } = require('./controllers/authController');
@@ -57,6 +59,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes); // Also mount under /auth for password reset
 app.use('/api/doctor', doctorRoutes);
+app.use('/api/doctors', doctorRoutes); // Plural route for getting all doctors
 app.use('/api/doctor', doctorChatRoutes); // Doctor chat routes
 app.use('/api/files', fileRoutes);
 app.use('/api', appDataRoutes);
@@ -68,6 +71,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api', prescriptionRoutes);
+app.use('/api/authorizations', authorizationRoutes);
+app.use('/api/access', accessRequestRoutes);
 
 // Root aliases to match requested endpoints
 app.post('/register', register);

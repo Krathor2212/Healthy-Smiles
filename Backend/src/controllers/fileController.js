@@ -150,6 +150,7 @@ async function uploadMedicalFile(req, res) {
 async function downloadMedicalFile(req, res) {
   try {
     const userId = req.user.id;
+    const userRole = req.user.role;
     const { fileId } = req.params;
 
     // Get file metadata
@@ -171,15 +172,90 @@ async function downloadMedicalFile(req, res) {
     const file = fileResult.rows[0];
 
     // Verify user has permission to download
-    if (file.patient_id !== userId) {
+    // Allow if: user is the patient OR user is a doctor
+    if (file.patient_id !== userId && userRole !== 'doctor') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied' 
       });
     }
 
-    // Decrypt private key
-    const privateKey = JSON.parse(decryptText(file.elgamal_private_key_enc));
+    // If user is a doctor (not the patient), they can't decrypt the file
+    // So we need to get the patient's private key or handle it differently
+    let privateKey;
+    
+    if (file.patient_id === userId) {
+      // User is the patient - decrypt using their key
+      privateKey = JSON.parse(decryptText(file.elgamal_private_key_enc));
+    } else if (userRole === 'doctor') {
+      // User is a doctor - check if they have authorization
+      const authResult = await db.query(`
+        SELECT da.shared_key_enc, d.elgamal_private_key_enc
+        FROM doctor_authorizations da
+        JOIN doctors d ON da.doctor_id = d.id
+        WHERE da.patient_id = $1 
+          AND da.doctor_id = $2 
+          AND da.is_active = true
+          AND (da.expires_at IS NULL OR da.expires_at > NOW())
+      `, [file.patient_id, userId]);
+
+      if (authResult.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          error: 'Not authorized to view this patient\'s files. Patient must grant access first.'
+        });
+      }
+
+      // Doctor has authorization - decrypt the shared key using doctor's private key
+      const doctorPrivateKey = JSON.parse(decryptText(authResult.rows[0].elgamal_private_key_enc));
+      
+      // Parse the encrypted shared key package
+      let sharedKeyPackage;
+      try {
+        sharedKeyPackage = JSON.parse(authResult.rows[0].shared_key_enc);
+      } catch (parseErr) {
+        console.error('Failed to parse shared_key_enc as JSON');
+        return res.status(500).json({
+          success: false,
+          error: 'Authorization data is corrupted. Please ask the patient to re-grant access.'
+        });
+      }
+      
+      // HYBRID DECRYPTION:
+      // Check if this is the new hybrid format (with encryptedAesKey) or old format
+      if (sharedKeyPackage.encryptedAesKey) {
+        // New hybrid format
+        // 1. Decrypt the AES key using doctor's ElGamal private key
+        const aesKeyBuffer = ElGamalCrypto.decryptFile(
+          sharedKeyPackage.encryptedAesKey,
+          doctorPrivateKey
+        );
+        
+        // 2. Decrypt the patient's private key using the AES key
+        const crypto = require('crypto');
+        const iv = Buffer.from(sharedKeyPackage.iv, 'base64');
+        const authTag = Buffer.from(sharedKeyPackage.authTag, 'base64');
+        const encryptedPrivateKey = Buffer.from(sharedKeyPackage.encryptedPrivateKey, 'base64');
+        
+        const decipher = crypto.createDecipheriv('aes-256-gcm', aesKeyBuffer, iv);
+        decipher.setAuthTag(authTag);
+        const patientPrivateKeyStr = Buffer.concat([
+          decipher.update(encryptedPrivateKey),
+          decipher.final()
+        ]).toString('utf8');
+        
+        privateKey = JSON.parse(patientPrivateKeyStr);
+      } else {
+        // Old format (direct ElGamal encryption) - for backward compatibility
+        const sharedKeyBuffer = ElGamalCrypto.decryptFile(sharedKeyPackage, doctorPrivateKey);
+        privateKey = JSON.parse(sharedKeyBuffer.toString());
+      }
+    } else {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
 
     // Decrypt file
     let decryptedBuffer;

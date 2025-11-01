@@ -3,6 +3,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppDataProvider } from '../contexts/AppDataContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
+import { AuthorizationProvider } from '../contexts/AuthorizationContext';
 import { defaultScreenOptions } from '../Navigation/NavigationConfig';
 import ScreenWrapper from '../components/ScreenWrapper';
 import BottomNavigation from '../components/BottomNavigation';
@@ -26,6 +27,7 @@ import EditProfileScreen from '../Pages/Profile/EditProfile';
 import MedicalFilesScreen from '../Pages/Profile/MedicalFiles';
 import PaymentHistoryScreen from '../Pages/Profile/PaymentHistory';
 import FAQsScreen from '../Pages/Profile/FAQScreen';
+import AuthorizedDoctors from '../Pages/Profile/AuthorizedDoctors';
 
 // Doctor Screens
 import FindDoctorsScreen from '../Pages/Doctors/FindDoctors';
@@ -108,6 +110,7 @@ function MainNavigator() {
       <Stack.Screen name="MedicalFiles" component={withBottomNav(MedicalFilesScreen)} />
       <Stack.Screen name="PaymentHistory" component={withBottomNav(PaymentHistoryScreen)} />
       <Stack.Screen name="FAQs" component={withBottomNav(FAQsScreen)} />
+      <Stack.Screen name="AuthorizedDoctors" component={withBottomNav(AuthorizedDoctors)} />
       
       {/* Doctor Screens */}
       <Stack.Screen name="FindDoctorsScreen" component={withBottomNav(FindDoctorsScreen)} />
@@ -132,7 +135,9 @@ export default function App() {
   return (
     <NotificationProvider>
       <AppDataProvider>
-        <MainNavigator />
+        <AuthorizationProvider>
+          <MainNavigator />
+        </AuthorizationProvider>
       </AppDataProvider>
     </NotificationProvider>
   );
