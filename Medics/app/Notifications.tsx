@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,12 +6,19 @@ import {
   StatusBar,
   SectionList,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import AppHeader from './components/AppHeader';
 import type { RootStackParamList } from './Navigation/types';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -23,74 +30,17 @@ type Notification = {
   description: string;
   time: string;
   isNew: boolean;
+  isRead: boolean;
   iconName: string;
-  iconColor: string; // Hex color for the icon
+  iconColor: string;
+  type?: string;
+  relatedId?: string;
 };
 
 type NotificationSection = {
   title: string;
   data: Notification[];
 };
-
-// --- Mock Data ---
-// Replace this with your API data
-const NOTIFICATIONS_DATA: NotificationSection[] = [
-  {
-    title: 'New',
-    data: [
-      {
-        id: '1',
-        title: 'Appointment Confirmed',
-        description: 'Your appointment with Dr. Sarah Johnson is confirmed for Nov 10.',
-        time: '10:30 AM',
-        isNew: true,
-        iconName: 'calendar',
-        iconColor: '#34D399', // Main green
-      },
-      {
-        id: '2',
-        title: 'Payment Successful',
-        description: 'Your payment of ₹800 has been successfully processed.',
-        time: '10:05 AM',
-        isNew: true,
-        iconName: 'check-circle',
-        iconColor: '#34D399', // Main green
-      },
-    ],
-  },
-  {
-    title: 'Earlier',
-    data: [
-      {
-        id: '3',
-        title: 'Appointment Reminder',
-        description: 'You have an upcoming appointment with Dr. Michael Chen tomorrow.',
-        time: 'Yesterday',
-        isNew: false,
-        iconName: 'clock',
-        iconColor: '#3B82F6', // Blue
-      },
-      {
-        id: '4',
-        title: 'New Message',
-        description: 'Dr. Michael Chen sent you a new message.',
-        time: 'Yesterday',
-        isNew: false,
-        iconName: 'message-circle',
-        iconColor: '#3B82F6', // Blue
-      },
-      {
-        id: '5',
-        title: 'Prescription Ready',
-        description: 'Your new prescription is ready for pickup.',
-        time: 'Nov 08',
-        isNew: false,
-        iconName: 'file-text',
-        iconColor: '#8B5CF6', // Purple
-      },
-    ],
-  },
-];
 
 // --- Constants ---
 const MAIN_GREEN = '#34D399';
@@ -103,11 +53,31 @@ const BG_LIGHT_GRAY = '#F3F4F6';
 /**
  * Renders a single notification item card
  */
-const NotificationItem: React.FC<{ item: Notification }> = ({ item }) => {
+const NotificationItem: React.FC<{ 
+  item: Notification;
+  onPress: (id: string) => void;
+}> = ({ item, onPress }) => {
+  // Map invalid Feather icon names to valid ones
+  const getValidFeatherIcon = (iconName: string): string => {
+    const iconMap: { [key: string]: string } = {
+      'cart': 'shopping-cart',
+      'bag': 'shopping-bag',
+      'notifications': 'bell',
+      'notification': 'bell',
+    };
+    return iconMap[iconName] || iconName;
+  };
+
+  const validIconName = getValidFeatherIcon(item.iconName);
+
   return (
-    <View style={styles.cardContainer}>
+    <TouchableOpacity 
+      style={styles.cardContainer}
+      onPress={() => onPress(item.id)}
+      activeOpacity={0.7}
+    >
       <View style={[styles.cardIconBg, { backgroundColor: item.iconColor + '20' }]}>
-        <Feather name={item.iconName as any} size={24} color={item.iconColor} />
+        <Feather name={validIconName as any} size={24} color={item.iconColor} />
       </View>
       <View style={styles.cardInfo}>
         <Text style={styles.cardTitle}>{item.title}</Text>
@@ -117,7 +87,7 @@ const NotificationItem: React.FC<{ item: Notification }> = ({ item }) => {
         <Text style={styles.cardTime}>{item.time}</Text>
         {item.isNew && <View style={styles.unreadDot} />}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -125,27 +95,153 @@ const NotificationItem: React.FC<{ item: Notification }> = ({ item }) => {
 
 const NotificationsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const [sections, setSections] = useState<NotificationSection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch notifications from backend
+  const fetchNotifications = async (isRefreshing = false) => {
+    try {
+      if (!isRefreshing) setLoading(true);
+      
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        Alert.alert('Error', 'Please login to view notifications');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/notifications`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const newSections: NotificationSection[] = [];
+
+        // Add "New" section if there are unread notifications
+        if (data.notifications.new && data.notifications.new.length > 0) {
+          newSections.push({
+            title: 'New',
+            data: data.notifications.new.map((n: any) => ({
+              ...n,
+              isNew: true
+            }))
+          });
+        }
+
+        // Add "Earlier" section if there are read notifications
+        if (data.notifications.earlier && data.notifications.earlier.length > 0) {
+          newSections.push({
+            title: 'Earlier',
+            data: data.notifications.earlier.map((n: any) => ({
+              ...n,
+              isNew: false
+            }))
+          });
+        }
+
+        setSections(newSections);
+        setUnreadCount(data.unreadCount || 0);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to load notifications');
+      }
+    } catch (error) {
+      console.error('Fetch notifications error:', error);
+      Alert.alert('Error', 'Failed to load notifications');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      
+      const response = await fetch(`${BACKEND_URL}/api/notifications/${notificationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isRead: true })
+      });
+
+      if (response.ok) {
+        // Refresh notifications to update UI
+        fetchNotifications();
+      }
+    } catch (error) {
+      console.error('Mark as read error:', error);
+    }
+  };
+
+  // Refresh on pull down
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNotifications(true);
+  };
+
+  // Fetch notifications when screen focuses
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [])
+  );
 
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={BG_LIGHT_GRAY} />
-      <AppHeader title="Notifications" onBack={() => navigation.goBack()} />
-
-      <SectionList
-        sections={NOTIFICATIONS_DATA}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.itemWrapper}>
-            <NotificationItem item={item} />
-          </View>
-        )}
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={styles.sectionHeader}>{title}</Text>
-        )}
-        stickySectionHeadersEnabled={false}
-        contentContainerStyle={styles.listContainer}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+      <AppHeader 
+        title={unreadCount > 0 ? `Notifications (${unreadCount})` : "Notifications"} 
+        onBack={() => navigation.goBack()} 
       />
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={MAIN_GREEN} />
+          <Text style={styles.loadingText}>Loading notifications...</Text>
+        </View>
+      ) : sections.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Feather name="bell-off" size={60} color="#D1D5DB" />
+          <Text style={styles.emptyTitle}>No Notifications</Text>
+          <Text style={styles.emptySubtitle}>
+            You'll see notifications here when you have new updates
+          </Text>
+        </View>
+      ) : (
+        <SectionList
+          sections={sections}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.itemWrapper}>
+              <NotificationItem item={item} onPress={markAsRead} />
+            </View>
+          )}
+          renderSectionHeader={({ section: { title } }) => (
+            <Text style={styles.sectionHeader}>{title}</Text>
+          )}
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={styles.listContainer}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[MAIN_GREEN]}
+              tintColor={MAIN_GREEN}
+            />
+          }
+        />
+      )}
     </View>
   );
 };
@@ -157,8 +253,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG_LIGHT_GRAY,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: TEXT_SECONDARY,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    marginTop: 8,
+  },
   listContainer: {
-    paddingBottom: 30, // For bottom spacing
+    paddingBottom: 30,
   },
   // Section List
   sectionHeader: {
