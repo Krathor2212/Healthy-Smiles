@@ -65,6 +65,7 @@ const NotificationItem: React.FC<{
       'bag': 'shopping-bag',
       'notifications': 'bell',
       'notification': 'bell',
+      'medical': 'activity',
     };
     return iconMap[iconName] || iconName;
   };
@@ -164,9 +165,17 @@ const NotificationsScreen: React.FC = () => {
     }
   };
 
-  // Mark notification as read
-  const markAsRead = async (notificationId: string) => {
+  // Mark notification as read and navigate
+  const handleNotificationPress = async (notificationId: string) => {
     try {
+      // Find the notification
+      const notification = sections
+        .flatMap(s => s.data)
+        .find(n => n.id === notificationId);
+
+      if (!notification) return;
+
+      // Mark as read
       const token = await AsyncStorage.getItem('token');
       
       const response = await fetch(`${BACKEND_URL}/api/notifications/${notificationId}`, {
@@ -182,8 +191,13 @@ const NotificationsScreen: React.FC = () => {
         // Refresh notifications to update UI and context
         fetchNotifications();
       }
+
+      // Navigate based on notification type
+      if (notificationContext.handleNotificationPress) {
+        notificationContext.handleNotificationPress(notification as any, navigation);
+      }
     } catch (error) {
-      console.error('Mark as read error:', error);
+      console.error('Handle notification press error:', error);
     }
   };
 
@@ -227,7 +241,7 @@ const NotificationsScreen: React.FC = () => {
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <View style={styles.itemWrapper}>
-              <NotificationItem item={item} onPress={markAsRead} />
+              <NotificationItem item={item} onPress={handleNotificationPress} />
             </View>
           )}
           renderSectionHeader={({ section: { title } }) => (

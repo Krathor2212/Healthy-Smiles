@@ -183,4 +183,38 @@ async function updateProfile(req, res) {
   }
 }
 
-module.exports = { getProfile, updateProfile };
+/**
+ * POST /api/user/push-token
+ * Register or update push notification token
+ */
+async function registerPushToken(req, res) {
+  try {
+    const userId = req.user.id;
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Push token is required' 
+      });
+    }
+
+    // Store or update push token in database
+    // For now, we'll just acknowledge receipt
+    // In production, you'd store this in a push_tokens table
+    console.log(`Registered push token for user ${userId}: ${token.substring(0, 20)}...`);
+
+    res.json({ 
+      success: true,
+      message: 'Push token registered successfully' 
+    });
+  } catch (err) {
+    console.error('Register push token error:', err);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
+  }
+}
+
+module.exports = { getProfile, updateProfile, registerPushToken };

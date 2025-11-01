@@ -12,6 +12,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 import type { RootStackParamList } from '../Navigation/types';
 import { homeStyles } from "../Pages/styles/homeStyles";
@@ -146,7 +147,13 @@ export default function HomeScreen() {
         backgroundColor="#fff" 
         translucent={false} 
       />
-      <ScrollView style={homeStyles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={[
+          homeStyles.container,
+          { paddingTop: Platform.OS === 'android' ? 20 : 20 }
+        ]} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={homeStyles.header}>
           <Text style={homeStyles.title}>Find your desire{"\n"}health solution</Text>

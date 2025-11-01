@@ -17,15 +17,20 @@ export default function BottomNavigation() {
   useEffect(() => {
     const routeName = route.name;
     
-    // Map route names to tab names
+    // Map route names to tab names - always update activeTab
     if (routeName === 'Home' || routeName === 'Notifications') {
       setActiveTab('Home');
     } else if (routeName === 'AllChatsScreen' || routeName === 'IndividualChatScreen') {
       setActiveTab('Chat');
+    } else if (routeName === 'Prescriptions') {
+      setActiveTab('Prescriptions');
     } else if (routeName === 'Profile' || routeName === 'EditProfile' || routeName === 'MedicalFiles' || routeName === 'PaymentHistory' || routeName === 'FAQs') {
       setActiveTab('Profile');
+    } else {
+      // For any other screen, determine which tab section it belongs to
+      // Default to Home if no match
+      setActiveTab('Home');
     }
-    // Keep the previously active tab for other screens
   }, [route.name]);
 
   const tabs = [
@@ -42,6 +47,12 @@ export default function BottomNavigation() {
       screen: "AllChatsScreen" as keyof RootStackParamList,
     },
     {
+      name: "Prescriptions",
+      icon: "medical-outline",
+      activeIcon: "medical",
+      screen: "Prescriptions" as keyof RootStackParamList,
+    },
+    {
       name: "Profile",
       icon: "person-outline",
       activeIcon: "person",
@@ -50,8 +61,17 @@ export default function BottomNavigation() {
   ];
 
   const handleTabPress = (screen: keyof RootStackParamList, tabName: string) => {
-    setActiveTab(tabName);
-    navigation.navigate(screen);
+    // Determine transition direction based on tab order
+    const tabOrder = ['Home', 'Chat', 'Prescriptions', 'Profile'];
+    const currentIndex = tabOrder.indexOf(activeTab);
+    const targetIndex = tabOrder.indexOf(tabName);
+    
+    // Calculate direction: if moving to a higher index (right), use right-to-left transition
+    // if moving to a lower index (left), use left-to-right transition
+    const transitionDirection = targetIndex > currentIndex ? 'right-to-left' : 'left-to-right';
+    
+    // Navigate with transition direction parameter
+    navigation.navigate(screen, { transitionDirection } as any);
   };
 
   return (

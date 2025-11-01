@@ -155,7 +155,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         navigation.navigate('AllChatsScreen');
         break;
       case 'prescription':
-        navigation.navigate('MedicalFiles');
+        navigation.navigate('Prescriptions');
         break;
       default:
         // Stay on current screen or go to notifications

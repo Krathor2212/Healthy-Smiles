@@ -18,6 +18,7 @@ const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payments');
 const notificationRoutes = require('./routes/notifications');
 const faqRoutes = require('./routes/faqs');
+const prescriptionRoutes = require('./routes/prescriptions');
 
 // Import controllers
 const { register, login } = require('./controllers/authController');
@@ -64,6 +65,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/faqs', faqRoutes);
+app.use('/api', prescriptionRoutes);
 
 // Root aliases to match requested endpoints
 app.post('/register', register);

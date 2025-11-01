@@ -1,7 +1,6 @@
 // components/ScreenWrapper.tsx
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import BottomNavigation from './BottomNavigation';
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
@@ -9,14 +8,9 @@ interface ScreenWrapperProps {
 }
 
 export default function ScreenWrapper({ children, showBottomNav = true }: ScreenWrapperProps) {
-  if (!showBottomNav) {
-    return <>{children}</>;
-  }
-
   return (
-    <View style={styles.container}>
+    <View style={showBottomNav ? styles.containerWithNav : styles.container}>
       {children}
-      <BottomNavigation />
     </View>
   );
 }
@@ -24,5 +18,9 @@ export default function ScreenWrapper({ children, showBottomNav = true }: Screen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  containerWithNav: {
+    flex: 1,
+    paddingBottom: 70, // Height of bottom navigation
   },
 });

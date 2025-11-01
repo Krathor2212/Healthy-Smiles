@@ -44,9 +44,10 @@ const menuItems: MenuItem[] = [
   { id: 0, iconName: 'create-outline', iconSet: 'Ionicons', title: 'Edit Profile' },
   { id: 1, iconName: 'folder-outline', iconSet: 'Ionicons', title: 'Files' },
   { id: 2, iconName: 'clipboard-text-outline', iconSet: 'MaterialCommunityIcons', title: 'Appointment' },
-  { id: 3, iconName: 'wallet-outline', iconSet: 'Ionicons', title: 'Payment History' },
-  { id: 4, iconName: 'chatbox-ellipses-outline', iconSet: 'Ionicons', title: 'FAQs' },
-  { id: 5, iconName: 'log-out-outline', iconSet: 'Ionicons', title: 'Logout', isLogout: true },
+  { id: 3, iconName: 'medical-outline', iconSet: 'Ionicons', title: 'Prescriptions' },
+  { id: 4, iconName: 'wallet-outline', iconSet: 'Ionicons', title: 'Payment History' },
+  { id: 5, iconName: 'chatbox-ellipses-outline', iconSet: 'Ionicons', title: 'FAQs' },
+  { id: 6, iconName: 'log-out-outline', iconSet: 'Ionicons', title: 'Logout', isLogout: true },
 ];
 
 const statItems: StatItem[] = [
@@ -158,6 +159,11 @@ export default function ProfileScreen(): React.ReactElement {
 
       if (item.title === 'Appointment') {
         navigation.navigate('Appointments' as any);
+        return;
+      }
+
+      if (item.title === 'Prescriptions') {
+        navigation.navigate('Prescriptions' as any);
         return;
       }
 
