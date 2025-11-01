@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -16,6 +16,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import AppHeader from './components/AppHeader';
+import { useNotifications } from './contexts/NotificationContext';
 import type { RootStackParamList } from './Navigation/types';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
@@ -95,6 +96,7 @@ const NotificationItem: React.FC<{
 
 const NotificationsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const notificationContext = useNotifications();
   const [sections, setSections] = useState<NotificationSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,6 +150,8 @@ const NotificationsScreen: React.FC = () => {
 
         setSections(newSections);
         setUnreadCount(data.unreadCount || 0);
+        // Also refresh the global notification context
+        notificationContext.refreshNotifications();
       } else {
         Alert.alert('Error', data.error || 'Failed to load notifications');
       }
@@ -175,7 +179,7 @@ const NotificationsScreen: React.FC = () => {
       });
 
       if (response.ok) {
-        // Refresh notifications to update UI
+        // Refresh notifications to update UI and context
         fetchNotifications();
       }
     } catch (error) {

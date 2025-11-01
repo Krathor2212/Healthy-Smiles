@@ -1,6 +1,7 @@
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import React from 'react';
 import { AppDataProvider } from '../contexts/AppDataContext';
+import { NotificationProvider } from '../contexts/NotificationContext';
 import AuthOptions from '../components/AuthOptions';
 import EditProfileScreen from '../Pages/Profile/EditProfile';
 import Home from '../Home/Home';
@@ -51,14 +52,15 @@ const withoutBottomNav = (Component: React.ComponentType<any>) => {
 
 export default function App() {
   return (
-    <AppDataProvider>
-      <Stack.Navigator
-        initialRouteName="Intro"
-        screenOptions={{
-          headerShown: false,
-          ...TransitionPresets.SlideFromRightIOS,
-        }}
-      >
+    <NotificationProvider>
+      <AppDataProvider>
+        <Stack.Navigator
+          initialRouteName="Intro"
+          screenOptions={{
+            headerShown: false,
+            ...TransitionPresets.SlideFromRightIOS,
+          }}
+        >
       {/* Auth screens - NO BottomNavigation */}
       <Stack.Screen
         name="Intro"
@@ -94,5 +96,6 @@ export default function App() {
       <Stack.Screen name="Appointments" component={withBottomNav(AppointmentsScheduleScreen)} />
       </Stack.Navigator>
     </AppDataProvider>
+    </NotificationProvider>
   );
 }

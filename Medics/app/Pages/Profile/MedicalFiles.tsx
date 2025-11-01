@@ -17,6 +17,7 @@ import {
     ActivityIndicator
 } from "react-native";
 import AppHeader from "../../components/AppHeader";
+import NotificationBell from "../../components/NotificationBell";
 import { RootStackParamList } from "../../Navigation/types";
 import Constants from 'expo-constants';
 
@@ -280,7 +281,11 @@ export default function MedicalFileManagerScreen() {
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Medical Records" onBack={handleBackPress} />
+      <AppHeader 
+        title="Medical Records" 
+        onBack={handleBackPress}
+        right={<NotificationBell onPress={() => navigation.navigate('Notifications')} />}
+      />
 
       {/* Info Banner */}
       <View style={styles.infoBanner}>
