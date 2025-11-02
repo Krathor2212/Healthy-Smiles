@@ -1,6 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-
-const SOCKET_URL = 'http://10.10.112.140:4000';
+import { SOCKET_URL } from '../config/api';
 
 class SocketService {
   private socket: Socket | null = null;
