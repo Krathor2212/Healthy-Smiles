@@ -1,7 +1,7 @@
 const db = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { encryptText, decryptText } = require('../cryptoUtil');
+const { encryptText, decryptText, computeHmac } = require('../cryptoUtil');
 
 // Admin Login
 const adminLogin = async (req, res) => {
@@ -71,12 +71,8 @@ const createDoctor = async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create HMAC for email (for unique constraint)
-    const crypto = require('crypto');
-    const emailHmac = crypto
-      .createHmac('sha256', process.env.ENCRYPTION_KEY)
-      .update(email.toLowerCase())
-      .digest('hex');
+    // Create HMAC for email (for unique constraint) - use the same method as login
+    const emailHmac = computeHmac(email.toLowerCase());
 
     // Check if email already exists
     const existingDoctor = await db.query(

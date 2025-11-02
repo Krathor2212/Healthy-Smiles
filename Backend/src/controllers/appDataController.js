@@ -191,6 +191,7 @@ async function getHospitalDoctors(req, res) {
         d.phone_enc,
         d.experience_enc,
         d.bio_enc,
+        d.profile_photo,
         ha.assigned_at
       FROM doctors d
       INNER JOIN hospital_assignments ha ON d.id = ha.doctor_id
@@ -207,9 +208,10 @@ async function getHospitalDoctors(req, res) {
       experience: doctor.experience_enc ? decryptText(doctor.experience_enc) : null,
       bio: doctor.bio_enc ? decryptText(doctor.bio_enc) : null,
       assignedAt: doctor.assigned_at,
+      // Use profile photo if available, otherwise use placeholder
+      image: doctor.profile_photo || 'https://via.placeholder.com/150',
       // Default values for mobile app compatibility
       rating: 4.5,
-      image: 'https://via.placeholder.com/150',
       availability: 'Available'
     }));
 
