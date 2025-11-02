@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Healthy Smiles - Backend Logs Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 24px 32px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      color: #667eea;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .status-badge.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.connected {
+      background: #28a745;
+    }
+
+    .status-indicator.disconnected {
+      background: #dc3545;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .stat-card h3 {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .filters {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 20px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .filter-btn:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .filter-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .logs-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      background: #f9fafb;
+      transition: all 0.3s;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .log-entry:hover {
+      background: #f3f4f6;
+      transform: translateX(4px);
+    }
+
+    .log-entry.http { border-left-color: #3b82f6; }
+    .log-entry.crypto { border-left-color: #8b5cf6; }
+    .log-entry.database { border-left-color: #10b981; }
+    .log-entry.error { border-left-color: #ef4444; }
+    .log-entry.warning { border-left-color: #f59e0b; }
+    .log-entry.info { border-left-color: #6b7280; }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .log-type {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .log-type.http { background: #dbeafe; color: #1e40af; }
+    .log-type.crypto { background: #ede9fe; color: #5b21b6; }
+    .log-type.database { background: #d1fae5; color: #065f46; }
+    .log-type.error { background: #fee2e2; color: #991b1b; }
+    .log-type.warning { background: #fef3c7; color: #92400e; }
+    .log-type.info { background: #e5e7eb; color: #374151; }
+
+    .log-time {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .log-details {
+      font-size: 14px;
+      color: #374151;
+      line-height: 1.6;
+    }
+
+    .log-details strong {
+      color: #1f2937;
+    }
+
+    .crypto-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .crypto-badge.encrypt {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .crypto-badge.decrypt {
+      background: #fce7f3;
+      color: #9f1239;
+    }
+
+    .algorithm-badge {
+      background: #f3e8ff;
+      color: #6b21a8;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+    }
+
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .search-box:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    /* Scrollbar styling */
+    .logs-container::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .logs-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .logs-container::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+
+    .logs-container::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    .method-badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .method-badge.GET { background: #dbeafe; color: #1e40af; }
+    .method-badge.POST { background: #d1fae5; color: #065f46; }
+    .method-badge.PUT { background: #fef3c7; color: #92400e; }
+    .method-badge.DELETE { background: #fee2e2; color: #991b1b; }
+    .method-badge.PATCH { background: #e0e7ff; color: #3730a3; }
+
+    .status-code {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .status-code.success { background: #d1fae5; color: #065f46; }
+    .status-code.error { background: #fee2e2; color: #991b1b; }
+    .status-code.redirect { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        Healthy Smiles - Backend Logs
+      </h1>
+      <div class="status">
+        <div class="status-badge" id="connectionStatus">
+          <div class="status-indicator"></div>
+          <span>Connecting...</span>
+        </div>
+        <span id="logCount" style="font-size: 14px; color: #6b7280;">0 logs</span>
+      </div>
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <h3>Total Logs</h3>
+        <div class="value" id="totalLogs">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>HTTP Requests</h3>
+        <div class="value" id="httpCount">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Encryption Ops</h3>
+        <div class="value" id="cryptoCount">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Database Ops</h3>
+        <div class="value" id="dbCount">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Errors</h3>
+        <div class="value" style="color: #ef4444;" id="errorCount">0</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-primary" onclick="toggleAutoScroll()">
+        <span id="autoScrollIcon">⏸</span>
+        <span id="autoScrollText">Pause Auto-Scroll</span>
+      </button>
+      <button class="btn btn-danger" onclick="clearLogs()">
+        🗑️ Clear Logs
+      </button>
+      <button class="btn btn-primary" onclick="exportLogs()">
+        📥 Export Logs
+      </button>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-filter="http" onclick="setFilter('http')">HTTP</button>
+      <button class="filter-btn" data-filter="crypto" onclick="setFilter('crypto')">Encryption</button>
+      <button class="filter-btn" data-filter="database" onclick="setFilter('database')">Database</button>
+      <button class="filter-btn" data-filter="error" onclick="setFilter('error')">Errors</button>
+      <button class="filter-btn" data-filter="warning" onclick="setFilter('warning')">Warnings</button>
+    </div>
+
+    <input type="text" class="search-box" id="searchBox" placeholder="Search logs..." onkeyup="filterLogs()">
+
+    <div class="logs-container" id="logsContainer">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3>Waiting for logs...</h3>
+        <p>Logs will appear here as your backend processes requests</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let logs = [];
+    let autoScroll = true;
+    let currentFilter = 'all';
+    let stats = {
+      total: 0,
+      http: 0,
+      crypto: 0,
+      database: 0,
+      error: 0
+    };
+
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/logs-ws`;
+      
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log('Connected to log stream');
+        updateConnectionStatus(true);
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'initial') {
+          logs = data.logs;
+          updateStats();
+          renderLogs();
+        } else if (data.type === 'new') {
+          logs.push(data.log);
+          updateStats();
+          addLogToDOM(data.log);
+        } else if (data.type === 'clear') {
+          logs = [];
+          updateStats();
+          renderLogs();
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('Disconnected from log stream');
+        updateConnectionStatus(false);
+        // Reconnect after 3 seconds
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    }
+
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('connectionStatus');
+      const indicator = statusEl.querySelector('.status-indicator');
+      const text = statusEl.querySelector('span');
+      
+      if (connected) {
+        statusEl.classList.remove('disconnected');
+        statusEl.classList.add('connected');
+        indicator.classList.remove('disconnected');
+        indicator.classList.add('connected');
+        text.textContent = 'Connected';
+      } else {
+        statusEl.classList.remove('connected');
+        statusEl.classList.add('disconnected');
+        indicator.classList.remove('connected');
+        indicator.classList.add('disconnected');
+        text.textContent = 'Disconnected';
+      }
+    }
+
+    function updateStats() {
+      stats.total = logs.length;
+      stats.http = logs.filter(l => l.type === 'http').length;
+      stats.crypto = logs.filter(l => l.type === 'crypto').length;
+      stats.database = logs.filter(l => l.type === 'database').length;
+      stats.error = logs.filter(l => l.level === 'error').length;
+
+      document.getElementById('totalLogs').textContent = stats.total;
+      document.getElementById('httpCount').textContent = stats.http;
+      document.getElementById('cryptoCount').textContent = stats.crypto;
+      document.getElementById('dbCount').textContent = stats.database;
+      document.getElementById('errorCount').textContent = stats.error;
+      document.getElementById('logCount').textContent = `${stats.total} logs`;
+    }
+
+    function renderLogs() {
+      const container = document.getElementById('logsContainer');
+      const filteredLogs = getFilteredLogs();
+      
+      if (filteredLogs.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h3>No logs found</h3>
+            <p>Try adjusting your filters or wait for new logs</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filteredLogs.map(log => createLogHTML(log)).join('');
+      
+      if (autoScroll) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    function addLogToDOM(log) {
+      const container = document.getElementById('logsContainer');
+      
+      // Remove empty state if exists
+      const emptyState = container.querySelector('.empty-state');
+      if (emptyState) {
+        container.innerHTML = '';
+      }
+
+      // Check if log matches current filter
+      if (shouldShowLog(log)) {
+        const logHTML = createLogHTML(log);
+        container.insertAdjacentHTML('beforeend', logHTML);
+        
+        if (autoScroll) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+    }
+
+    function createLogHTML(log) {
+      const time = new Date(log.timestamp).toLocaleTimeString();
+      let details = '';
+
+      switch (log.type) {
+        case 'http':
+          const statusClass = log.statusCode < 300 ? 'success' : log.statusCode < 400 ? 'redirect' : 'error';
+          details = `
+            <span class="method-badge ${log.method}">${log.method}</span>
+            <strong>${log.path}</strong>
+            <span class="status-code ${statusClass}">${log.statusCode}</span>
+            <span style="color: #6b7280; margin-left: 8px;">${log.responseTime}ms</span>
+          `;
+          break;
+
+        case 'crypto':
+          details = `
+            <span class="crypto-badge ${log.operation}">${log.operation.toUpperCase()}</span>
+            <span class="algorithm-badge">${log.algorithm}</span>
+            <strong>${log.dataType}</strong>
+            <span style="color: #6b7280; margin-left: 8px;">(${log.dataSize} bytes)</span>
+            ${log.success ? '✅' : '❌'}
+          `;
+          break;
+
+        case 'database':
+          details = `
+            <strong>${log.operation}</strong> on <strong>${log.table}</strong>
+            <span style="color: #6b7280; margin-left: 8px;">
+              ${log.rowCount} rows • ${log.duration}ms
+            </span>
+            ${log.success ? '✅' : '❌'}
+          `;
+          break;
+
+        case 'error':
+          details = `
+            <strong style="color: #ef4444;">${log.message}</strong>
+            ${log.error ? `<br><span style="color: #6b7280; font-size: 12px;">${log.error}</span>` : ''}
+          `;
+          break;
+
+        case 'warning':
+          details = `<strong>${log.message}</strong>`;
+          break;
+
+        case 'info':
+          details = `<strong>${log.message}</strong>`;
+          break;
+      }
+
+      return `
+        <div class="log-entry ${log.type}" data-type="${log.type}">
+          <div class="log-header">
+            <span class="log-type ${log.type}">${log.type}</span>
+            <span class="log-time">${time}</span>
+          </div>
+          <div class="log-details">${details}</div>
+        </div>
+      `;
+    }
+
+    function getFilteredLogs() {
+      const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+      
+      return logs.filter(log => {
+        const matchesFilter = shouldShowLog(log);
+        const matchesSearch = searchTerm === '' || 
+          JSON.stringify(log).toLowerCase().includes(searchTerm);
+        
+        return matchesFilter && matchesSearch;
+      });
+    }
+
+    function shouldShowLog(log) {
+      if (currentFilter === 'all') return true;
+      return log.type === currentFilter || log.level === currentFilter;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      
+      // Update active button
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+      
+      renderLogs();
+    }
+
+    function filterLogs() {
+      renderLogs();
+    }
+
+    function toggleAutoScroll() {
+      autoScroll = !autoScroll;
+      document.getElementById('autoScrollIcon').textContent = autoScroll ? '⏸' : '▶';
+      document.getElementById('autoScrollText').textContent = autoScroll ? 'Pause Auto-Scroll' : 'Resume Auto-Scroll';
+    }
+
+    function clearLogs() {
+      if (confirm('Are you sure you want to clear all logs?')) {
+        logs = [];
+        updateStats();
+        renderLogs();
+      }
+    }
+
+    function exportLogs() {
+      const dataStr = JSON.stringify(logs, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `backend-logs-${new Date().toISOString()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Initialize connection
+    connectWebSocket();
+  </script>
+</body>
+</html>

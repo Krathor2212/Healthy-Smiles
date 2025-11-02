@@ -136,11 +136,6 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
   const handleBack = () => {
     navigation.goBack();
   };
-
-  const handleGoogleSignIn = () => {
-    console.log('Attempting Google Sign-In...');
-    // Add your Google Sign-In logic here
-  };
   
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -254,12 +249,6 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
             <Text style={styles.dividerText}>OR</Text>
             <View style={styles.dividerLine} />
         </View>
-
-        {/* --- Google Sign-In Button --- */}
-        <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
-          <AntDesign name="google" size={24} color="#333" />
-          <Text style={styles.socialButtonText}>Sign in with Google</Text>
-        </TouchableOpacity>
 
       </KeyboardAvoidingView>
     </SafeAreaView>

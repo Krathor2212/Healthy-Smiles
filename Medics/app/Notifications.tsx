@@ -66,6 +66,7 @@ const NotificationItem: React.FC<{
       'notifications': 'bell',
       'notification': 'bell',
       'medical': 'activity',
+      'chatbubble': 'message-circle',
     };
     return iconMap[iconName] || iconName;
   };

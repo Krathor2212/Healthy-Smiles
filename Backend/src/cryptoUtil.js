@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logDashboard = require('./logDashboard');
 
 const ENC_KEY = process.env.ENCRYPTION_KEY; // base64 encoded 32 bytes
 const IV_LENGTH = parseInt(process.env.ENCRYPTION_IV_LENGTH || '12', 10); // recommended for GCM
@@ -14,39 +15,79 @@ function getKey() {
 }
 
 function encryptText(plain) {
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv('aes-256-gcm', getKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, encrypted]).toString('base64');
+  try {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv('aes-256-gcm', getKey(), iv);
+    const encrypted = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    const result = Buffer.concat([iv, tag, encrypted]).toString('base64');
+    
+    // Log encryption
+    logDashboard.logEncryption('encrypt', 'AES-256-GCM', 'text', Buffer.byteLength(plain, 'utf8'), true);
+    
+    return result;
+  } catch (error) {
+    logDashboard.logEncryption('encrypt', 'AES-256-GCM', 'text', Buffer.byteLength(plain, 'utf8'), false);
+    throw error;
+  }
 }
 
 function decryptText(payload) {
-  const data = Buffer.from(payload, 'base64');
-  const iv = data.slice(0, IV_LENGTH);
-  const tag = data.slice(IV_LENGTH, IV_LENGTH + 16);
-  const encrypted = data.slice(IV_LENGTH + 16);
-  const decipher = crypto.createDecipheriv('aes-256-gcm', getKey(), iv);
-  decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-  return decrypted.toString('utf8');
+  try {
+    const data = Buffer.from(payload, 'base64');
+    const iv = data.slice(0, IV_LENGTH);
+    const tag = data.slice(IV_LENGTH, IV_LENGTH + 16);
+    const encrypted = data.slice(IV_LENGTH + 16);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', getKey(), iv);
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    const result = decrypted.toString('utf8');
+    
+    // Log decryption
+    logDashboard.logEncryption('decrypt', 'AES-256-GCM', 'text', data.length, true);
+    
+    return result;
+  } catch (error) {
+    logDashboard.logEncryption('decrypt', 'AES-256-GCM', 'text', 0, false);
+    throw error;
+  }
 }
 
 function encryptBuffer(buffer) {
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv('aes-256-gcm', getKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, encrypted]);
+  try {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv('aes-256-gcm', getKey(), iv);
+    const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    const result = Buffer.concat([iv, tag, encrypted]);
+    
+    // Log encryption
+    logDashboard.logEncryption('encrypt', 'AES-256-GCM', 'buffer', buffer.length, true);
+    
+    return result;
+  } catch (error) {
+    logDashboard.logEncryption('encrypt', 'AES-256-GCM', 'buffer', buffer.length, false);
+    throw error;
+  }
 }
 
 function decryptBuffer(payloadBuffer) {
-  const iv = payloadBuffer.slice(0, IV_LENGTH);
-  const tag = payloadBuffer.slice(IV_LENGTH, IV_LENGTH + 16);
-  const encrypted = payloadBuffer.slice(IV_LENGTH + 16);
-  const decipher = crypto.createDecipheriv('aes-256-gcm', getKey(), iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]);
+  try {
+    const iv = payloadBuffer.slice(0, IV_LENGTH);
+    const tag = payloadBuffer.slice(IV_LENGTH, IV_LENGTH + 16);
+    const encrypted = payloadBuffer.slice(IV_LENGTH + 16);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', getKey(), iv);
+    decipher.setAuthTag(tag);
+    const result = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    
+    // Log decryption
+    logDashboard.logEncryption('decrypt', 'AES-256-GCM', 'buffer', payloadBuffer.length, true);
+    
+    return result;
+  } catch (error) {
+    logDashboard.logEncryption('decrypt', 'AES-256-GCM', 'buffer', payloadBuffer.length, false);
+    throw error;
+  }
 }
 
 function computeHmac(value) {

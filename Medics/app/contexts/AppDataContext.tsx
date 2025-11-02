@@ -180,9 +180,13 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
           console.log('📦 Loading data from cache');
           setAppData(JSON.parse(cachedData));
         }
+        // IMPORTANT: Set loading to false even if no token, so app can proceed to login screen
+        setLoading(false);
       }
     } catch (err) {
       console.error('Error checking auth:', err);
+      // Set loading to false on error too
+      setLoading(false);
     }
   };
 
@@ -207,45 +211,64 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       console.log('🔗 Fetching app data from:', `${BASE_URL}/api/app-data`);
 
-      const response = await fetch(`${BASE_URL}/api/app-data`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Add timeout to prevent hanging indefinitely
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Token expired or invalid, clear it
-          await AsyncStorage.removeItem('token');
-          throw new Error('Authentication expired. Please login again.');
-        }
-        throw new Error(`Failed to fetch app data: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ App data fetched successfully:', {
-        doctors: data.doctors?.length || 0,
-        doctorNames: data.doctors?.map((d: any) => d.name) || [],
-        medicines: data.medicines?.length || 0,
-        hospitals: data.hospitals?.length || 0,
-        articles: data.articles?.trending?.length || 0
-      });
-      
-      // Validate data structure
-      if (!data.doctors || !data.medicines || !data.hospitals) {
-        console.warn('⚠️ WARNING: Response missing required fields!', {
-          hasDoctors: !!data.doctors,
-          hasMedicines: !!data.medicines,
-          hasHospitals: !!data.hospitals
+      try {
+        const response = await fetch(`${BASE_URL}/api/app-data`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Token expired or invalid, clear it
+            await AsyncStorage.removeItem('token');
+            throw new Error('Authentication expired. Please login again.');
+          }
+          throw new Error(`Failed to fetch app data: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ App data fetched successfully:', {
+          doctors: data.doctors?.length || 0,
+          doctorNames: data.doctors?.map((d: any) => d.name) || [],
+          medicines: data.medicines?.length || 0,
+          hospitals: data.hospitals?.length || 0,
+          articles: data.articles?.trending?.length || 0
+        });
+        
+        // Validate data structure
+        if (!data.doctors || !data.medicines || !data.hospitals) {
+          console.warn('⚠️ WARNING: Response missing required fields!', {
+            hasDoctors: !!data.doctors,
+            hasMedicines: !!data.medicines,
+            hasHospitals: !!data.hospitals
+          });
+        }
+        
+        setAppData(data);
+        
+        // Cache NEW data locally for offline access
+        await AsyncStorage.setItem('appDataCache', JSON.stringify(data));
+        console.log('💾 New data cached successfully');
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId);
+        
+        // Check if it's a timeout/network error
+        if (fetchErr.name === 'AbortError') {
+          console.error('❌ Request timeout: Backend not reachable');
+          throw new Error('Backend server is not reachable. Please check your connection.');
+        } else {
+          throw fetchErr;
+        }
       }
-      
-      setAppData(data);
-      
-      // Cache NEW data locally for offline access
-      await AsyncStorage.setItem('appDataCache', JSON.stringify(data));
-      console.log('💾 New data cached successfully');
       
     } catch (err: any) {
       console.error('❌ Failed to fetch app data:', err);
@@ -253,12 +276,14 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error('   Error stack:', err.stack);
       setError(err.message);
       
-      // Only load cached data if fetch completely failed
+      // Load cached data if fetch completely failed
       try {
         const cachedData = await AsyncStorage.getItem('appDataCache');
         if (cachedData) {
           console.log('📦 Loading data from cache (fallback)');
           setAppData(JSON.parse(cachedData));
+        } else {
+          console.log('⚠️ No cached data available, proceeding without data');
         }
       } catch (cacheErr) {
         console.error('Failed to load cached data:', cacheErr);
@@ -281,7 +306,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(doc =>
         doc.categories?.includes(selectedCategory) ||
-        doc.specialty.toLowerCase().includes(selectedCategory.toLowerCase())
+        (doc.specialty || '').toLowerCase().includes(selectedCategory.toLowerCase())
       );
     }
 
@@ -289,9 +314,9 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(doc =>
-        doc.name.toLowerCase().includes(query) ||
-        doc.specialty.toLowerCase().includes(query) ||
-        doc.hospital.toLowerCase().includes(query)
+        (doc.name || '').toLowerCase().includes(query) ||
+        (doc.specialty || '').toLowerCase().includes(query) ||
+        (doc.hospital || '').toLowerCase().includes(query)
       );
     }
 
@@ -311,9 +336,9 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(med =>
-        med.name.toLowerCase().includes(query) ||
-        med.description?.toLowerCase().includes(query) ||
-        med.category.toLowerCase().includes(query)
+        (med.name || '').toLowerCase().includes(query) ||
+        (med.description || '').toLowerCase().includes(query) ||
+        (med.category || '').toLowerCase().includes(query)
       );
     }
 
@@ -340,9 +365,9 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(hosp =>
-        hosp.name.toLowerCase().includes(query) ||
-        hosp.speciality.toLowerCase().includes(query) ||
-        hosp.address.toLowerCase().includes(query)
+        (hosp.name || '').toLowerCase().includes(query) ||
+        (hosp.speciality || '').toLowerCase().includes(query) ||
+        (hosp.address || '').toLowerCase().includes(query)
       );
     }
 

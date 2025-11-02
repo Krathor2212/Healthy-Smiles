@@ -19,6 +19,24 @@ async function getChats(req, res) {
       ORDER BY last_message_time DESC NULLS LAST
     `, [userId]);
 
+    // Update missing avatars from doctors table
+    for (const chat of result.rows) {
+      if (!chat.doctor_avatar && chat.doctor_id) {
+        const doctorResult = await db.query(
+          'SELECT profile_photo FROM doctors WHERE id = $1',
+          [chat.doctor_id]
+        );
+        if (doctorResult.rows.length > 0) {
+          const avatar = doctorResult.rows[0].profile_photo || '';
+          await db.query(
+            'UPDATE chat_contacts SET doctor_avatar = $1 WHERE id = $2',
+            [avatar, chat.id]
+          );
+          chat.doctor_avatar = avatar;
+        }
+      }
+    }
+
     const contacts = result.rows.map(chat => ({
       id: chat.id,
       doctorId: chat.doctor_id,
@@ -254,6 +272,7 @@ async function initiateChat(req, res) {
     // Check if doctorId is from doctors_data (TEXT) or doctors (UUID)
     let actualDoctorId = doctorId;
     let doctorName = 'Doctor';
+    let doctorAvatar = '';
     
     // Check if it's a UUID or TEXT ID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -271,6 +290,16 @@ async function initiateChat(req, res) {
         // Use the linked UUID if available
         if (doctorDataResult.rows[0].doctor_id) {
           actualDoctorId = doctorDataResult.rows[0].doctor_id;
+          
+          // Get profile photo from the actual doctor
+          const doctorResult = await db.query(
+            'SELECT name_enc, profile_photo FROM doctors WHERE id = $1',
+            [actualDoctorId]
+          );
+          if (doctorResult.rows.length > 0) {
+            doctorName = decryptText(doctorResult.rows[0].name_enc);
+            doctorAvatar = doctorResult.rows[0].profile_photo || '';
+          }
         } else {
           // Doctor not linked yet - keep the TEXT ID for now
           console.warn(`Doctor ${doctorId} from doctors_data is not linked to doctors table`);
@@ -282,13 +311,14 @@ async function initiateChat(req, res) {
         });
       }
     } else {
-      // It's already a UUID, get the doctor name
+      // It's already a UUID, get the doctor name and avatar
       const doctorResult = await db.query(
-        'SELECT name_enc FROM doctors WHERE id = $1',
+        'SELECT name_enc, profile_photo FROM doctors WHERE id = $1',
         [doctorId]
       );
       if (doctorResult.rows.length > 0) {
         doctorName = decryptText(doctorResult.rows[0].name_enc);
+        doctorAvatar = doctorResult.rows[0].profile_photo || '';
       }
     }
 
@@ -310,9 +340,9 @@ async function initiateChat(req, res) {
     // Create new chat
     const chatId = uuidv4();
     await db.query(`
-      INSERT INTO chat_contacts (id, patient_id, doctor_id, doctor_name, doctor_rating, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-    `, [chatId, patientId, actualDoctorId, doctorName, 4.5]); // Default rating
+      INSERT INTO chat_contacts (id, patient_id, doctor_id, doctor_name, doctor_avatar, doctor_rating, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [chatId, patientId, actualDoctorId, doctorName, doctorAvatar, 4.5]); // Default rating
 
     res.json({ 
       success: true,

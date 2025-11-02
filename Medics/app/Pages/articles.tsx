@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { Article, ArticlesData } from "../Home/types/articles";
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../Navigation/types';
 import { articlesStyles } from "../Pages/styles/articlesStyles";
 
 // Article data for different categories
@@ -573,9 +573,9 @@ export default function ArticlesScreen() {
     
     const searchLower = searchText.toLowerCase();
     return currentArticles.filter((article: Article) => 
-      article.title.toLowerCase().includes(searchLower) ||
-      article.content.toLowerCase().includes(searchLower) ||
-      article.category.toLowerCase().includes(searchLower)
+      (article.title || '').toLowerCase().includes(searchLower) ||
+      (article.content || '').toLowerCase().includes(searchLower) ||
+      (article.category || '').toLowerCase().includes(searchLower)
     );
   }, [activeTag, searchText]);
 

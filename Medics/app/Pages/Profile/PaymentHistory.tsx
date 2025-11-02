@@ -13,7 +13,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../Navigation/types';
-import AppHeader from '@/app/components/AppHeader';
+import AppHeader from '../../components/AppHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 

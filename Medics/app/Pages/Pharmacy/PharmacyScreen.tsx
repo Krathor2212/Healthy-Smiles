@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   ScrollView,
   Text,
   TextInput,
@@ -44,7 +43,7 @@ export default function PharmacyScreen() {
     size: med.size,
     description: med.description,
     rating: med.rating,
-    image: med.image
+    image: med.image || 'https://via.placeholder.com/150/4CAF50/ffffff?text=Medicine'
   }));
 
   const saleProducts = saleMedicines.map(med => ({
@@ -55,7 +54,7 @@ export default function PharmacyScreen() {
     size: med.size,
     description: med.description,
     rating: med.rating,
-    image: med.image
+    image: med.image || 'https://via.placeholder.com/150/4CAF50/ffffff?text=Medicine'
   }));
 
   // Show more products - top rated for popular, all for featured
@@ -88,17 +87,11 @@ export default function PharmacyScreen() {
 
   const renderProductItem = ({ item, isOnSale = false }: { item: Product; isOnSale?: boolean }) => (
     <TouchableOpacity style={pstyles.productCard} onPress={() => handleProductPress(item)}>
-      <View style={pstyles.productImageContainer}>
-        <Image 
-          source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
-          style={pstyles.productImage} 
-        />
-        {isOnSale && (
-          <View style={pstyles.saleBadge}>
-            <Text style={pstyles.saleBadgeText}>SALE</Text>
-          </View>
-        )}
-      </View>
+      {isOnSale && (
+        <View style={pstyles.saleBadge}>
+          <Text style={pstyles.saleBadgeText}>SALE</Text>
+        </View>
+      )}
       <Text style={pstyles.productName}>{item.name}</Text>
       <Text style={pstyles.productSize}>{item.size}</Text>
       <View style={pstyles.ratingContainer}>

@@ -100,6 +100,12 @@ async function getAppData(req, res) {
       ORDER BY on_sale DESC, rating DESC
     `);
 
+    // Add default image to medicines without images
+    const medicines = medicinesResult.rows.map(medicine => ({
+      ...medicine,
+      image: medicine.image || 'https://via.placeholder.com/150/4CAF50/ffffff?text=Medicine'
+    }));
+
     // Fetch hospitals
     const hospitalsResult = await db.query(`
       SELECT id, name, speciality, rating, reviews_count, distance, 
@@ -132,7 +138,7 @@ async function getAppData(req, res) {
 
     // Get unique medicine categories with counts
     const medicineCategoryMap = new Map();
-    medicinesResult.rows.forEach(m => {
+    medicines.forEach(m => {
       if (m.category) {
         medicineCategoryMap.set(m.category, (medicineCategoryMap.get(m.category) || 0) + 1);
       }
@@ -146,7 +152,7 @@ async function getAppData(req, res) {
     // Build response
     const response = {
       doctors: doctors,
-      medicines: medicinesResult.rows,
+      medicines: medicines,
       hospitals: hospitalsResult.rows,
       articles: {
         trending: trendingArticles,

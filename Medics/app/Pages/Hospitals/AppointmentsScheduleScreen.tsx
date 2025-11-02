@@ -11,7 +11,7 @@ import {
     View,
     ActivityIndicator,
 } from "react-native";
-import AppHeader from "@/app/components/AppHeader";
+import AppHeader from "../../components/AppHeader";
 import { StyleSheet } from "react-native";
 import type { RootStackParamList } from '../../Navigation/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -78,10 +78,10 @@ export default function AppointmentsScheduleScreen() {
         // Debug: Log appointments with their statuses
         console.log('📋 Fetched appointments:', formattedAppointments.length);
         console.log('📊 Status breakdown:', {
-          confirmed: formattedAppointments.filter((a: Appointment) => a.status.toLowerCase() === 'confirmed').length,
-          completed: formattedAppointments.filter((a: Appointment) => a.status.toLowerCase() === 'completed').length,
+          confirmed: formattedAppointments.filter((a: Appointment) => (a.status || '').toLowerCase() === 'confirmed').length,
+          completed: formattedAppointments.filter((a: Appointment) => (a.status || '').toLowerCase() === 'completed').length,
           canceled: formattedAppointments.filter((a: Appointment) => 
-            a.status.toLowerCase() === 'canceled' || a.status.toLowerCase() === 'cancelled'
+            (a.status || '').toLowerCase() === 'canceled' || (a.status || '').toLowerCase() === 'cancelled'
           ).length,
         });
         
@@ -215,7 +215,7 @@ export default function AppointmentsScheduleScreen() {
   const filteredAppointments = (status: string) => {
     // Case-insensitive comparison to handle both "Canceled" and "Cancelled"
     return appointments.filter(app => 
-      app.status.toLowerCase() === status.toLowerCase()
+      (app.status || '').toLowerCase() === status.toLowerCase()
     );
   };
 
@@ -228,8 +228,8 @@ export default function AppointmentsScheduleScreen() {
       case "canceled":
         // Handle both "Canceled" and "Cancelled" spellings
         const cancelled = appointments.filter(app => 
-          app.status.toLowerCase() === "canceled" || 
-          app.status.toLowerCase() === "cancelled"
+          (app.status || '').toLowerCase() === "canceled" || 
+          (app.status || '').toLowerCase() === "cancelled"
         );
         return cancelled;
       default:

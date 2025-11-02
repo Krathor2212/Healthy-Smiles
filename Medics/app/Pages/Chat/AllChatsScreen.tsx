@@ -157,7 +157,7 @@ const AllChatsScreen: React.FC = () => {
 
   // Filter contacts based on search query
   const filteredContacts = contacts.filter(contact =>
-    contact.doctorName.toLowerCase().includes(searchQuery.toLowerCase())
+    (contact.doctorName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

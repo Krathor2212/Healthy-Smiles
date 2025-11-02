@@ -175,17 +175,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-      {/* Search bar */}
-      <View style={homeStyles.searchContainer}>
-        <Ionicons name="search-outline" size={20} color="#9CA3AF" />
-        <TextInput
-          placeholder="Search doctor, drugs, articles..."
-          style={homeStyles.searchInput}
-          placeholderTextColor="#9CA3AF"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
 
       {/* Categories */}
       <View style={homeStyles.categoryRow}>

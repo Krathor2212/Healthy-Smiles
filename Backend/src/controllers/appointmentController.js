@@ -102,9 +102,15 @@ async function createAppointment(req, res) {
       });
     }
 
-    // Get doctor details
+    // Get doctor details from the real doctors table
     const doctorResult = await db.query(
-      'SELECT name, image, specialty, hospital, hospital_id, doctor_id FROM doctors_data WHERE id = $1',
+      `SELECT d.id, d.name_enc, d.specialty_enc, d.profile_photo,
+              h.id as hospital_id, h.name as hospital_name
+       FROM doctors d
+       LEFT JOIN hospital_assignments ha ON d.id = ha.doctor_id
+       LEFT JOIN hospitals h ON ha.hospital_id = h.id
+       WHERE d.id = $1
+       LIMIT 1`,
       [doctorId]
     );
 
@@ -115,10 +121,20 @@ async function createAppointment(req, res) {
       });
     }
 
-    const doctor = doctorResult.rows[0];
+    const doctorRow = doctorResult.rows[0];
     
-    // Use the linked UUID doctor_id if available, otherwise use the text ID
-    const actualDoctorId = doctor.doctor_id || doctorId;
+    // Decrypt doctor data
+    const { decryptText } = require('../cryptoUtil');
+    const doctor = {
+      id: doctorRow.id,
+      name: doctorRow.name_enc ? decryptText(doctorRow.name_enc) : 'Unknown Doctor',
+      specialty: doctorRow.specialty_enc ? decryptText(doctorRow.specialty_enc) : 'General Physician',
+      image: doctorRow.profile_photo || '',
+      hospital: doctorRow.hospital_name || 'General Hospital',
+      hospital_id: doctorRow.hospital_id || null
+    };
+    
+    const actualDoctorId = doctorId;
 
     // Get hospital details
     let hospitalName = doctor.hospital;

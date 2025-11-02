@@ -85,7 +85,7 @@ const pstyles = StyleSheet.create({
   productCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 10,
+    padding: 5,
     marginHorizontal: 8,
     width: 160,
     shadowColor: '#000',

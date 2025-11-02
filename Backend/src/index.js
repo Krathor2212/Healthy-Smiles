@@ -5,6 +5,11 @@ const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const os = require('os');
+const path = require('path');
+
+// Import log dashboard
+const logDashboard = require('./logDashboard');
+const requestLogger = require('./middleware/requestLogger');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -46,6 +51,12 @@ app.use(cors());
 // Increase body parser limits for file uploads (though files use multer)
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Add request logger middleware
+app.use(requestLogger);
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -89,6 +100,13 @@ console.log('✓ Diffie-Hellman WebSocket chat initialized');
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
+  
+  // Log error to dashboard
+  logDashboard.logError(err.message, err, {
+    path: req.path,
+    method: req.method
+  });
+  
   res.status(500).json({ 
     success: false,
     error: 'Internal server error',
@@ -112,6 +130,9 @@ const ip = getLocalIPv4();
 
 // Listen on all interfaces (0.0.0.0) to be accessible from both localhost and network
 server.listen(port, '0.0.0.0', () => {
+  // Initialize WebSocket for log dashboard
+  logDashboard.initializeWebSocket(server);
+  
   console.log('='.repeat(60));
   console.log('🏥 Healthy Smiles Backend Server');
   console.log('='.repeat(60));
@@ -123,4 +144,18 @@ server.listen(port, '0.0.0.0', () => {
   console.log(`🔑 Diffie-Hellman key exchange: Enabled`);
   console.log(`📅 Started: ${new Date().toLocaleString()}`);
   console.log('='.repeat(60));
+  console.log('');
+  console.log('📊 LOG DASHBOARD:');
+  console.log(`   🌐 http://localhost:${port}/logs.html`);
+  console.log(`   🌐 http://${ip}:${port}/logs.html`);
+  console.log('');
+  console.log('   Open this URL in your browser to view real-time logs!');
+  console.log('='.repeat(60));
+  
+  // Log server start
+  logDashboard.logInfo('Backend server started', {
+    port,
+    ip,
+    timestamp: new Date().toISOString()
+  });
 });
