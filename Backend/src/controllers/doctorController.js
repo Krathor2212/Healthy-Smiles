@@ -355,12 +355,12 @@ async function getAllDoctors(req, res) {
 async function getDoctorProfile(req, res) {
   try {
     const doctorId = req.user.id;
-    if (req.user.role !== 'doctor') return res.status(403).json({ error: 'forbidden' });
+    if (req.user.role !== 'doctor' && req.user.role !== 'admin') return res.status(403).json({ error: 'forbidden' });
 
     const q = `
       SELECT id, name_enc, email_enc, specialty_enc, 
              phone_enc, qualifications_enc, experience_enc, 
-             hospital_enc, address_enc, bio_enc 
+             hospital_enc, address_enc, bio_enc, profile_photo 
       FROM doctors 
       WHERE id = $1
     `;
@@ -383,7 +383,8 @@ async function getDoctorProfile(req, res) {
       experience: doctor.experience_enc ? decryptText(doctor.experience_enc) : '',
       hospital: doctor.hospital_enc ? decryptText(doctor.hospital_enc) : '',
       address: doctor.address_enc ? decryptText(doctor.address_enc) : '',
-      bio: doctor.bio_enc ? decryptText(doctor.bio_enc) : ''
+      bio: doctor.bio_enc ? decryptText(doctor.bio_enc) : '',
+      profilePhoto: doctor.profile_photo || null
     });
   } catch (err) {
     console.error('[getDoctorProfile] Error:', err);
@@ -394,9 +395,9 @@ async function getDoctorProfile(req, res) {
 async function updateDoctorProfile(req, res) {
   try {
     const doctorId = req.user.id;
-    if (req.user.role !== 'doctor') return res.status(403).json({ error: 'forbidden' });
+    if (req.user.role !== 'doctor' && req.user.role !== 'admin') return res.status(403).json({ error: 'forbidden' });
 
-    const { name, specialty, phone, qualifications, experience, hospital, address, bio } = req.body;
+    const { name, specialty, phone, qualifications, experience, hospital, address, bio, profilePhoto } = req.body;
     const { encryptText, decryptText } = require('../cryptoUtil');
 
     // Build update query dynamically
@@ -452,6 +453,12 @@ async function updateDoctorProfile(req, res) {
       paramCount++;
     }
 
+    if (profilePhoto !== undefined) {
+      updates.push(`profile_photo = $${paramCount}`);
+      values.push(profilePhoto || null);
+      paramCount++;
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ error: 'no_fields_to_update' });
     }
@@ -465,7 +472,7 @@ async function updateDoctorProfile(req, res) {
       WHERE id = $${paramCount}
       RETURNING id, name_enc, email_enc, specialty_enc, 
                 phone_enc, qualifications_enc, experience_enc, 
-                hospital_enc, address_enc, bio_enc
+                hospital_enc, address_enc, bio_enc, profile_photo
     `;
 
     const r = await db.query(query, values);
@@ -483,7 +490,8 @@ async function updateDoctorProfile(req, res) {
         experience: doctor.experience_enc ? decryptText(doctor.experience_enc) : '',
         hospital: doctor.hospital_enc ? decryptText(doctor.hospital_enc) : '',
         address: doctor.address_enc ? decryptText(doctor.address_enc) : '',
-        bio: doctor.bio_enc ? decryptText(doctor.bio_enc) : ''
+        bio: doctor.bio_enc ? decryptText(doctor.bio_enc) : '',
+        profilePhoto: doctor.profile_photo || null
       }
     });
   } catch (err) {

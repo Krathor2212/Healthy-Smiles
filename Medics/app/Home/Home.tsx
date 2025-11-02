@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -14,6 +15,7 @@ import {
   View,
   Platform,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RootStackParamList } from '../Navigation/types';
 import { homeStyles } from "../Pages/styles/homeStyles";
 import { useAppData } from '../contexts/AppDataContext';
@@ -21,9 +23,16 @@ import { useAppData } from '../contexts/AppDataContext';
 export default function HomeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [showArticleContent, setShowArticleContent] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Use AppDataContext instead of static data
-  const { topDoctors, articles, loading, searchQuery, setSearchQuery } = useAppData();
+  const { topDoctors, articles, loading, searchQuery, setSearchQuery, refreshData } = useAppData();
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshData();
+    setRefreshing(false);
+  };
 
   const heartArticleContent = [
     {
@@ -141,18 +150,22 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor="#fff" 
-        translucent={false} 
       />
       <ScrollView 
-        style={[
-          homeStyles.container,
-          { paddingTop: Platform.OS === 'android' ? 20 : 20 }
-        ]} 
+        style={homeStyles.container} 
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#4CAF50']}
+            tintColor="#4CAF50"
+          />
+        }
       >
         {/* Header */}
         <View style={homeStyles.header}>
@@ -300,6 +313,6 @@ export default function HomeScreen() {
         )}
       </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

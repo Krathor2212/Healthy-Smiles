@@ -144,13 +144,6 @@ export default function PharmacyScreen() {
           </View>
         ) : (
           <>
-            <View style={pstyles.prescriptionSection}>
-              <Text style={pstyles.sectionTitle}>Order quickly with Prescription</Text>
-              <TouchableOpacity style={pstyles.uploadButton}>
-                <Text style={pstyles.uploadButtonText}>Upload Prescription</Text>
-              </TouchableOpacity>
-            </View>
-
             {saleProducts.length > 0 && (
               <View style={pstyles.section}>
                 <View style={pstyles.sectionHeader}>

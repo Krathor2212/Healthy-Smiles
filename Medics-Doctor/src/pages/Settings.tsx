@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '../services/api';
-import { User, Mail, Phone, MapPin, Briefcase, Save, Camera, RefreshCw } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, Save, Camera, RefreshCw, Upload, X } from 'lucide-react';
 
 interface DoctorProfile {
   id: string;
@@ -15,6 +15,7 @@ interface DoctorProfile {
   address?: string;
   bio?: string;
   avatar?: string;
+  profilePhoto?: string;
 }
 
 const Settings: React.FC = () => {
@@ -31,7 +32,11 @@ const Settings: React.FC = () => {
     address: '',
     bio: '',
     avatar: '',
+    profilePhoto: '',
   });
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch doctor profile
   const { data: doctorProfile, isLoading, refetch } = useQuery<DoctorProfile>({
@@ -71,7 +76,7 @@ const Settings: React.FC = () => {
       alert('Name is required');
       return;
     }
-    // Send all profile fields
+    // Send all profile fields including photo
     updateProfileMutation.mutate({
       name: profile.name,
       specialty: profile.specialty || '',
@@ -81,13 +86,54 @@ const Settings: React.FC = () => {
       hospital: profile.hospital || '',
       address: profile.address || '',
       bio: profile.bio || '',
+      profilePhoto: photoPreview || profile.profilePhoto || '',
     });
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
+    setUploadingPhoto(true);
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setPhotoPreview(base64String);
+      setUploadingPhoto(false);
+    };
+    reader.onerror = () => {
+      alert('Failed to read image file');
+      setUploadingPhoto(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleCancel = () => {
     if (doctorProfile) {
       setProfile(doctorProfile);
     }
+    setPhotoPreview(null);
     setIsEditing(false);
   };
 
@@ -151,9 +197,9 @@ const Settings: React.FC = () => {
         {/* Avatar Section */}
         <div className="flex items-center gap-6 mb-6 pb-6 border-b border-gray-200">
           <div className="relative">
-            {profile.avatar ? (
+            {(photoPreview || profile.profilePhoto || profile.avatar) ? (
               <img
-                src={profile.avatar}
+                src={photoPreview || profile.profilePhoto || profile.avatar}
                 alt={profile.name}
                 className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
               />
@@ -163,15 +209,48 @@ const Settings: React.FC = () => {
               </div>
             )}
             {isEditing && (
-              <button className="absolute bottom-0 right-0 p-2 bg-blue-500 rounded-full text-white hover:bg-blue-600">
-                <Camera className="w-4 h-4" />
-              </button>
+              <div className="absolute bottom-0 right-0 flex gap-1">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="p-2 bg-blue-500 rounded-full text-white hover:bg-blue-600 disabled:opacity-50 shadow-lg"
+                  title="Upload photo"
+                >
+                  {uploadingPhoto ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Camera className="w-4 h-4" />
+                  )}
+                </button>
+                {photoPreview && (
+                  <button
+                    onClick={handleRemovePhoto}
+                    className="p-2 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-lg"
+                    title="Remove photo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
           </div>
           <div>
             <h3 className="text-2xl font-bold text-gray-900">{profile.name || 'Doctor Name'}</h3>
             <p className="text-gray-600">{profile.specialty || 'Specialty'}</p>
             <p className="text-sm text-gray-500 mt-1">{profile.email}</p>
+            {isEditing && (
+              <p className="text-xs text-blue-600 mt-2">
+                <Upload className="w-3 h-3 inline mr-1" />
+                Click camera icon to upload photo (max 5MB)
+              </p>
+            )}
           </div>
         </div>
 

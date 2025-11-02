@@ -316,7 +316,7 @@ async function resetPassword(req, res) {
 }
 
 async function doctorLogin(req, res) {
-  // { email, password } - For doctors only
+  // { email, password } - For doctors and admins
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -326,12 +326,46 @@ async function doctorLogin(req, res) {
       });
     }
 
+    // First, try to find as admin (admins table has plain email)
+    const adminQuery = `SELECT id, name, email, password_hash 
+                       FROM admins WHERE email = $1`;
+    const adminResult = await db.query(adminQuery, [email.toLowerCase()]);
+    
+    if (adminResult.rows.length > 0) {
+      const admin = adminResult.rows[0];
+      const ok = await bcrypt.compare(password, admin.password_hash);
+      
+      if (!ok) {
+        return res.status(401).json({ 
+          success: false,
+          error: 'Invalid email or password' 
+        });
+      }
+
+      const token = jwt.sign(
+        { id: admin.id, email: admin.email, role: 'admin' }, 
+        process.env.JWT_SECRET || 'devsecret', 
+        { expiresIn: '30d' }
+      );
+      
+      return res.json({ 
+        token, 
+        user: {
+          id: admin.id,
+          name: admin.name,
+          email: admin.email,
+          role: 'admin'
+        }
+      });
+    }
+
+    // If not admin, try to find as doctor
     const role = 'doctor';
     
     // Use deterministic HMAC for lookup
     const emailHmac = computeHmac(email);
     
-    const q = `SELECT id, password_hash, name_enc, email_enc, specialty_enc 
+    const q = `SELECT id, password_hash, name_enc, email_enc, specialty_enc, role 
                FROM doctors WHERE email_hmac = $1`;
     const r = await db.query(q, [emailHmac]);
     
@@ -352,14 +386,18 @@ async function doctorLogin(req, res) {
       });
     }
 
-    const token = jwt.sign({ id: doctor.id, role }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '30d' });
+    const token = jwt.sign(
+      { id: doctor.id, role: doctor.role || role }, 
+      process.env.JWT_SECRET || 'devsecret', 
+      { expiresIn: '30d' }
+    );
     
     // Decrypt doctor data for response
     const userData = {
       id: doctor.id,
       name: decryptText(doctor.name_enc),
       email: decryptText(doctor.email_enc),
-      role,
+      role: doctor.role || role,
       specialization: doctor.specialty_enc ? decryptText(doctor.specialty_enc) : null
     };
 

@@ -102,13 +102,14 @@ const SignUpScreen = () => {
         console.warn('Failed to persist token', e);
       }
 
-      // navigate into app (reset to Home to clear signup/login history)
+      // New users need to complete profile - always redirect to ProfileSetup after signup
+      console.log('✅ New user signed up, redirecting to profile setup...');
       if ((navigation as any).reset) {
-        (navigation as any).reset({ index: 0, routes: [{ name: 'Home' }] });
+        (navigation as any).reset({ index: 0, routes: [{ name: 'ProfileSetup' }] });
       } else if ((navigation as any).replace) {
-        (navigation as any).replace('Home');
+        (navigation as any).replace('ProfileSetup');
       } else {
-        navigation.navigate('Home');
+        navigation.navigate('ProfileSetup' as any);
       }
     } catch (err: any) {
       Alert.alert('Network error', err?.message || 'Unable to reach server');

@@ -13,6 +13,7 @@ import {
   X,
   Bell,
   User as UserIcon,
+  Shield,
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -20,14 +21,22 @@ const Layout: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const menuItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/appointments', icon: Calendar, label: 'Appointments' },
-    { path: '/patients', icon: Users, label: 'Patients' },
-    { path: '/prescriptions', icon: FileText, label: 'Prescriptions' },
-    { path: '/chats', icon: MessageSquare, label: 'Chats' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
+  // Base menu items for doctors
+  const baseMenuItems = [
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['doctor', 'admin'] },
+    { path: '/appointments', icon: Calendar, label: 'Appointments', roles: ['doctor'] },
+    { path: '/patients', icon: Users, label: 'Patients', roles: ['doctor'] },
+    { path: '/prescriptions', icon: FileText, label: 'Prescriptions', roles: ['doctor'] },
+    { path: '/chats', icon: MessageSquare, label: 'Chats', roles: ['doctor'] },
+    { path: '/settings', icon: Settings, label: 'Settings', roles: ['doctor', 'admin'] },
   ];
+
+  // Add admin menu item if user is admin
+  const adminMenuItem = { path: '/admin', icon: Shield, label: 'Admin Panel', roles: ['admin'] };
+
+  const menuItems = user?.role === 'admin' 
+    ? [baseMenuItems[0], adminMenuItem, ...baseMenuItems.slice(1)] // Dashboard, Admin Panel, then Settings
+    : baseMenuItems.filter(item => item.roles.includes('doctor'));
 
   const isActive = (path: string) => location.pathname === path;
 

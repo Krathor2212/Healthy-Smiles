@@ -19,7 +19,7 @@ async function getProfile(req, res) {
 
     // Get user profile
     const userResult = await db.query(`
-      SELECT id, name_enc, email_enc, phone_enc, avatar, dob_enc, height_enc, weight_enc
+      SELECT id, name_enc, email_enc, phone_enc, avatar, dob_enc, height_enc, weight_enc, profile_completed
       FROM patients
       WHERE id = $1
     `, [userId]);
@@ -54,6 +54,7 @@ async function getProfile(req, res) {
       dob: user.dob_enc ? decryptText(user.dob_enc) : null,
       height: user.height_enc ? decryptText(user.height_enc) : null,
       weight: user.weight_enc ? decryptText(user.weight_enc) : null,
+      profileCompleted: user.profile_completed || false,
       stats: {
         appointmentsCount: parseInt(stats.appointments_count) || 0,
         filesCount: parseInt(stats.files_count) || 0,
@@ -139,6 +140,13 @@ async function updateProfile(req, res) {
       });
     }
 
+    // Check if profile should be marked as completed
+    // Profile is complete if name, phone, and dob are all provided
+    const checkCompletion = name && phone && dob;
+    if (checkCompletion) {
+      updates.push(`profile_completed = TRUE`);
+    }
+
     // Add user ID as last parameter
     values.push(userId);
 
@@ -146,7 +154,7 @@ async function updateProfile(req, res) {
       UPDATE patients 
       SET ${updates.join(', ')} 
       WHERE id = $${paramCount}
-      RETURNING id, name_enc, email_enc, phone_enc, avatar, dob_enc, height_enc, weight_enc
+      RETURNING id, name_enc, email_enc, phone_enc, avatar, dob_enc, height_enc, weight_enc, profile_completed
     `;
 
     const result = await db.query(query, values);
@@ -171,7 +179,8 @@ async function updateProfile(req, res) {
         avatar: user.avatar || null,
         dob: user.dob_enc ? decryptText(user.dob_enc) : null,
         height: user.height_enc ? decryptText(user.height_enc) : null,
-        weight: user.weight_enc ? decryptText(user.weight_enc) : null
+        weight: user.weight_enc ? decryptText(user.weight_enc) : null,
+        profileCompleted: user.profile_completed || false
       }
     });
   } catch (err) {

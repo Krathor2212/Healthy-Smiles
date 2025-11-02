@@ -66,7 +66,7 @@ export default function AppointmentsScheduleScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        const formattedAppointments = (data.appointments || []).map((apt: any) => ({
+        const formattedAppointments: Appointment[] = (data.appointments || []).map((apt: any) => ({
           id: apt.id,
           doctorName: apt.doctorName,
           specialty: apt.specialty,
@@ -74,6 +74,17 @@ export default function AppointmentsScheduleScreen() {
           time: apt.time,
           status: apt.status,
         }));
+        
+        // Debug: Log appointments with their statuses
+        console.log('📋 Fetched appointments:', formattedAppointments.length);
+        console.log('📊 Status breakdown:', {
+          confirmed: formattedAppointments.filter((a: Appointment) => a.status.toLowerCase() === 'confirmed').length,
+          completed: formattedAppointments.filter((a: Appointment) => a.status.toLowerCase() === 'completed').length,
+          canceled: formattedAppointments.filter((a: Appointment) => 
+            a.status.toLowerCase() === 'canceled' || a.status.toLowerCase() === 'cancelled'
+          ).length,
+        });
+        
         setAppointments(formattedAppointments);
       } else if (response.status === 401) {
         await AsyncStorage.removeItem('token');
@@ -202,7 +213,10 @@ export default function AppointmentsScheduleScreen() {
   };
 
   const filteredAppointments = (status: string) => {
-    return appointments.filter(app => app.status === status);
+    // Case-insensitive comparison to handle both "Canceled" and "Cancelled"
+    return appointments.filter(app => 
+      app.status.toLowerCase() === status.toLowerCase()
+    );
   };
 
   const getAppointmentsForActiveTab = () => {
@@ -212,7 +226,12 @@ export default function AppointmentsScheduleScreen() {
       case "completed":
         return filteredAppointments("Completed");
       case "canceled":
-        return filteredAppointments("Canceled");
+        // Handle both "Canceled" and "Cancelled" spellings
+        const cancelled = appointments.filter(app => 
+          app.status.toLowerCase() === "canceled" || 
+          app.status.toLowerCase() === "cancelled"
+        );
+        return cancelled;
       default:
         return filteredAppointments("Confirmed");
     }

@@ -54,4 +54,42 @@ function authenticateToken(req, res, next) {
   }
 }
 
-module.exports = { auth, authenticateToken };
+// Admin authorization middleware
+function requireAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin access required'
+    });
+  }
+
+  next();
+}
+
+// Doctor authorization middleware
+function requireDoctor(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+
+  if (req.user.role !== 'doctor' && req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Doctor access required'
+    });
+  }
+
+  next();
+}
+
+module.exports = { auth, authenticateToken, requireAdmin, requireDoctor };

@@ -24,6 +24,7 @@ import NotificationsScreen from '../Notifications';
 // Profile Screens
 import ProfileScreen from '../Pages/Profile/Profile';
 import EditProfileScreen from '../Pages/Profile/EditProfile';
+import ProfileSetupScreen from '../Pages/Profile/ProfileSetup';
 import MedicalFilesScreen from '../Pages/Profile/MedicalFiles';
 import PaymentHistoryScreen from '../Pages/Profile/PaymentHistory';
 import FAQsScreen from '../Pages/Profile/FAQScreen';
@@ -90,6 +91,9 @@ function MainNavigator() {
       <Stack.Screen name="Login" component={withoutBottomNav(LoginScreen)} />
       <Stack.Screen name="SignUp" component={withoutBottomNav(SignUpScreen)} />
       <Stack.Screen name="ForgotPassword" component={withoutBottomNav(ForgotPasswordScreen)} />
+      
+      {/* Profile Setup - NO BottomNavigation (mandatory after signup/login) */}
+      <Stack.Screen name="ProfileSetup" component={withoutBottomNav(ProfileSetupScreen)} />
       
       {/* Main app screens - WITH BottomNavigation */}
       <Stack.Screen name="Home" component={withBottomNav(Home)} />

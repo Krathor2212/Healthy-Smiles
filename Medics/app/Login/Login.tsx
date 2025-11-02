@@ -78,6 +78,31 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
         // Fetch app data after successful login
         console.log('✅ Login successful, fetching app data...');
         await refreshData();
+        
+        // Check if profile is completed
+        const backend = (Constants.expoConfig?.extra?.BACKEND_URL || (Constants.manifest as any)?.extra?.BACKEND_URL) || 'http://10.11.146.215:4000';
+        try {
+          const profileResp = await fetch(`${backend.replace(/\/$/, '')}/api/user/profile`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (profileResp.ok) {
+            const profileData = await profileResp.json();
+            if (!profileData.profileCompleted) {
+              // Redirect to profile setup
+              console.log('❌ Profile not completed, redirecting to setup...');
+              navigation.reset({ index: 0, routes: [{ name: 'ProfileSetup' as any }] });
+              return;
+            }
+          }
+        } catch (profileErr) {
+          console.warn('Failed to check profile completion:', profileErr);
+          // Continue to Home even if check fails
+        }
       } catch (e) {
         // non-fatal, still proceed
         console.warn('Failed to save token/session', e);

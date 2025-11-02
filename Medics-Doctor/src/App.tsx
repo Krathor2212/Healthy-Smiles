@@ -10,6 +10,7 @@ import Patients from './pages/Patients';
 import Prescriptions from './pages/Prescriptions';
 import Chats from './pages/Chats';
 import Settings from './pages/Settings';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -60,6 +61,7 @@ function App() {
             >
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="admin" element={<AdminDashboard />} />
               <Route path="appointments" element={<Appointments />} />
               <Route path="patients" element={<Patients />} />
               <Route path="prescriptions" element={<Prescriptions />} />

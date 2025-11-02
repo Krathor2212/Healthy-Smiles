@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   StatusBar,
   Image,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -15,15 +16,19 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import AppHeader from '../../components/AppHeader';
 import JuicyTransitionWrapper from '../../components/JuicyTransitionWrapper';
 import type { RootStackParamList } from '../../Navigation/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 interface Doctor {
-  id: number;
+  id: string;
   name: string;
   specialty: string;
   rating: number;
   experience: string;
   image: string;
   availability: string;
+  phone?: string;
+  bio?: string;
 }
 
 interface RouteParams {
@@ -36,88 +41,64 @@ interface RouteParams {
   longitude: number;
 }
 
+const API_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
+
 export default function HospitalDetails() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute();
   const params = route.params as RouteParams;
 
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>("All");
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const handleBackPress = () => navigation.goBack();
 
-  // Specialties for filtering
+  // Fetch doctors assigned to this hospital
+  useEffect(() => {
+    fetchHospitalDoctors();
+  }, [params.hospitalId]);
+
+  const fetchHospitalDoctors = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      const response = await fetch(
+        `${API_URL}/api/hospitals/${params.hospitalId}/doctors`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setDoctors(data.doctors || []);
+      } else {
+        console.error('Failed to fetch hospital doctors');
+        setDoctors([]);
+      }
+    } catch (error) {
+      console.error('Error fetching hospital doctors:', error);
+      setDoctors([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get unique specialties from fetched doctors
   const specialties = [
     "All",
-    "Cardiologist",
-    "Neurologist",
-    "Orthopedist",
-    "Pediatrician",
-    "Dermatologist",
-    "General Physician",
-  ];
-
-  // Sample doctors data for the hospital
-  const allDoctors: Doctor[] = [
-    {
-      id: 1,
-      name: "Dr. Rajesh Kumar",
-      specialty: "Cardiologist",
-      rating: 4.8,
-      experience: "15 years",
-      image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face",
-      availability: "Available today",
-    },
-    {
-      id: 2,
-      name: "Dr. Priya Sharma",
-      specialty: "Neurologist",
-      rating: 4.7,
-      experience: "12 years",
-      image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face",
-      availability: "Available today",
-    },
-    {
-      id: 3,
-      name: "Dr. Arun Krishnan",
-      specialty: "Orthopedist",
-      rating: 4.9,
-      experience: "18 years",
-      image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&h=150&fit=crop&crop=face",
-      availability: "Available tomorrow",
-    },
-    {
-      id: 4,
-      name: "Dr. Lakshmi Menon",
-      specialty: "Pediatrician",
-      rating: 4.6,
-      experience: "10 years",
-      image: "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=150&h=150&fit=crop&crop=face",
-      availability: "Available today",
-    },
-    {
-      id: 5,
-      name: "Dr. Suresh Babu",
-      specialty: "Dermatologist",
-      rating: 4.5,
-      experience: "14 years",
-      image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face",
-      availability: "Available today",
-    },
-    {
-      id: 6,
-      name: "Dr. Meena Ravi",
-      specialty: "General Physician",
-      rating: 4.7,
-      experience: "8 years",
-      image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face",
-      availability: "Available today",
-    },
+    ...Array.from(new Set(doctors.map(d => d.specialty))).filter(Boolean)
   ];
 
   // Filter doctors based on selected specialty
   const filteredDoctors = selectedSpecialty === "All" 
-    ? allDoctors 
-    : allDoctors.filter(doctor => doctor.specialty === selectedSpecialty);
+    ? doctors 
+    : doctors.filter(doctor => doctor.specialty === selectedSpecialty);
 
   const handleBookAppointment = (doctor: Doctor) => {
     navigation.navigate('DoctorDetails', {
@@ -212,41 +193,58 @@ export default function HospitalDetails() {
           <Text style={styles.doctorCount}>({filteredDoctors.length})</Text>
         </View>
 
-        <View style={styles.doctorsList}>
-          {filteredDoctors.map((doctor, index) => (
-            <JuicyTransitionWrapper
-              key={doctor.id}
-              id={index}
-              cardless
-              delayMultiplier={150}
-            >
-              <TouchableOpacity
-                style={styles.doctorCard}
-                onPress={() => handleBookAppointment(doctor)}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0091F5" />
+            <Text style={styles.loadingText}>Loading doctors...</Text>
+          </View>
+        ) : filteredDoctors.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="people-outline" size={64} color="#ccc" />
+            <Text style={styles.emptyText}>No doctors assigned to this hospital yet</Text>
+            <Text style={styles.emptySubtext}>
+              Doctors will be assigned by the admin
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.doctorsList}>
+            {filteredDoctors.map((doctor, index) => (
+              <JuicyTransitionWrapper
+                key={doctor.id}
+                id={index}
+                cardless
+                delayMultiplier={150}
               >
-                <Image source={{ uri: doctor.image }} style={styles.doctorImage} />
-                <View style={styles.doctorInfo}>
-                  <Text style={styles.doctorName}>{doctor.name}</Text>
-                  <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
-                  <Text style={styles.doctorExperience}>{doctor.experience} experience</Text>
-                  <View style={styles.doctorMeta}>
-                    <Ionicons name="star" size={14} color="#3CB179" />
-                    <Text style={styles.doctorRating}>{doctor.rating}</Text>
-                    <View style={styles.availabilityBadge}>
-                      <Text style={styles.availabilityText}>{doctor.availability}</Text>
-                    </View>
-                  </View>
-                </View>
                 <TouchableOpacity
-                  style={styles.bookButton}
+                  style={styles.doctorCard}
                   onPress={() => handleBookAppointment(doctor)}
                 >
-                  <Text style={styles.bookButtonText}>Book</Text>
+                  <Image source={{ uri: doctor.image }} style={styles.doctorImage} />
+                  <View style={styles.doctorInfo}>
+                    <Text style={styles.doctorName}>{doctor.name}</Text>
+                    <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
+                    <Text style={styles.doctorExperience}>
+                      {doctor.experience || 'N/A'} experience
+                    </Text>
+                    <View style={styles.doctorMeta}>
+                      <Ionicons name="star" size={14} color="#3CB179" />
+                      <Text style={styles.doctorRating}>{doctor.rating}</Text>
+                      <View style={styles.availabilityBadge}>
+                        <Text style={styles.availabilityText}>{doctor.availability}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.bookButton}
+                    onPress={() => handleBookAppointment(doctor)}
+                  >
+                    <Text style={styles.bookButtonText}>Book</Text>
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            </JuicyTransitionWrapper>
-          ))}
-        </View>
+              </JuicyTransitionWrapper>
+            ))}
+          </View>
+        )}
 
         {filteredDoctors.length === 0 && (
           <View style={styles.emptyState}>
@@ -454,6 +452,35 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 8,
+    textAlign: 'center',
   },
   emptyState: {
     alignItems: 'center',

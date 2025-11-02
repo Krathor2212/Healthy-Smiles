@@ -151,18 +151,6 @@ const MedicalInsuranceScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* Supported Providers Section */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Supported Providers</Text>
-          <FlatList
-            data={SUPPORTED_PROVIDERS}
-            renderItem={({ item }) => <ProviderLogoCard item={item} />}
-            keyExtractor={item => item.id}
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.providerList}
-          />
-        </View>
       </ScrollView>
     </View>
   );

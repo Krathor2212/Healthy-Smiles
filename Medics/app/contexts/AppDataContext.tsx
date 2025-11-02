@@ -199,9 +199,13 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
+      // ALWAYS clear cache before fetching to ensure fresh data
+      console.log('🗑️ Clearing old cached data...');
+      await AsyncStorage.removeItem('appDataCache');
+
       const BASE_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
-      console.log('🔗 Fetching app data from:', BASE_URL);
+      console.log('🔗 Fetching app data from:', `${BASE_URL}/api/app-data`);
 
       const response = await fetch(`${BASE_URL}/api/app-data`, {
         headers: {
@@ -222,25 +226,38 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const data = await response.json();
       console.log('✅ App data fetched successfully:', {
         doctors: data.doctors?.length || 0,
+        doctorNames: data.doctors?.map((d: any) => d.name) || [],
         medicines: data.medicines?.length || 0,
         hospitals: data.hospitals?.length || 0,
         articles: data.articles?.trending?.length || 0
       });
       
+      // Validate data structure
+      if (!data.doctors || !data.medicines || !data.hospitals) {
+        console.warn('⚠️ WARNING: Response missing required fields!', {
+          hasDoctors: !!data.doctors,
+          hasMedicines: !!data.medicines,
+          hasHospitals: !!data.hospitals
+        });
+      }
+      
       setAppData(data);
       
-      // Cache data locally for offline access
+      // Cache NEW data locally for offline access
       await AsyncStorage.setItem('appDataCache', JSON.stringify(data));
+      console.log('💾 New data cached successfully');
       
     } catch (err: any) {
       console.error('❌ Failed to fetch app data:', err);
+      console.error('   Error details:', err.message);
+      console.error('   Error stack:', err.stack);
       setError(err.message);
       
-      // Try to load cached data
+      // Only load cached data if fetch completely failed
       try {
         const cachedData = await AsyncStorage.getItem('appDataCache');
         if (cachedData) {
-          console.log('📦 Loading data from cache');
+          console.log('📦 Loading data from cache (fallback)');
           setAppData(JSON.parse(cachedData));
         }
       } catch (cacheErr) {
