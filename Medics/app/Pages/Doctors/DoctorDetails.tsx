@@ -264,7 +264,7 @@ export default function DoctorDetailsScreen() {
       {/* Doctor Profile */}
       <View style={doctorDetailStyles.doctorProfile}>
         <Image 
-          source={{ uri: doctorData.image }} 
+          source={{ uri: doctorData.image || 'https://via.placeholder.com/150' }} 
           style={doctorDetailStyles.doctorDetailImage} 
         />
         <View style={doctorDetailStyles.doctorProfileInfo}>

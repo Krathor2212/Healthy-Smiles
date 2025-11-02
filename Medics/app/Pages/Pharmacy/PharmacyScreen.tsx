@@ -89,7 +89,10 @@ export default function PharmacyScreen() {
   const renderProductItem = ({ item, isOnSale = false }: { item: Product; isOnSale?: boolean }) => (
     <TouchableOpacity style={pstyles.productCard} onPress={() => handleProductPress(item)}>
       <View style={pstyles.productImageContainer}>
-        <Image source={{ uri: item.image }} style={pstyles.productImage} />
+        <Image 
+          source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
+          style={pstyles.productImage} 
+        />
         {isOnSale && (
           <View style={pstyles.saleBadge}>
             <Text style={pstyles.saleBadgeText}>SALE</Text>

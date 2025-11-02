@@ -99,7 +99,10 @@ const BenefitItem: React.FC<{ text: string }> = ({ text }) => (
  */
 const ProviderLogoCard: React.FC<{ item: Provider }> = ({ item }) => (
   <View style={styles.providerCard}>
-    <Image source={{ uri: item.logoUrl }} style={styles.providerLogo} />
+    <Image 
+      source={{ uri: item.logoUrl || 'https://via.placeholder.com/150' }} 
+      style={styles.providerLogo} 
+    />
   </View>
 );
 

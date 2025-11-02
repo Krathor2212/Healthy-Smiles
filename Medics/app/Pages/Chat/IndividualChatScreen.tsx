@@ -68,7 +68,10 @@ const ChatHeader: React.FC<{
     <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
       <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
     </TouchableOpacity>
-    <Image source={{ uri: doctorAvatar }} style={styles.chatHeaderAvatar} />
+    <Image 
+      source={{ uri: doctorAvatar || 'https://via.placeholder.com/150' }} 
+      style={styles.chatHeaderAvatar} 
+    />
     <View style={styles.chatHeaderInfo}>
       <Text style={styles.chatHeaderName}>{String(doctorName || 'Doctor')}</Text>
       <Text style={styles.chatHeaderSpeciality}>{String(doctorSpeciality || 'Specialist')}</Text>
@@ -126,7 +129,10 @@ const MessageBubble: React.FC<{
   return (
     <View style={[styles.messageRow, isPatient ? styles.userMessageRow : styles.doctorMessageRow]}>
       {!isPatient && (
-        <Image source={{ uri: doctorAvatar }} style={styles.messageAvatar} />
+        <Image 
+          source={{ uri: doctorAvatar || 'https://via.placeholder.com/150' }} 
+          style={styles.messageAvatar} 
+        />
       )}
       <View style={[styles.messageBubble, isPatient ? styles.userBubble : styles.doctorBubble]}>
         {!isPatient && (

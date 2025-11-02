@@ -211,7 +211,10 @@ export default function AppointmentScreen() {
 
         {/* Doctor Profile */}
         <View style={appointmentStyles.doctorProfile}>
-          <Image source={{ uri: appointmentData.image }} style={appointmentStyles.doctorDetailImage} />
+          <Image 
+            source={{ uri: appointmentData.image || 'https://via.placeholder.com/150' }} 
+            style={appointmentStyles.doctorDetailImage} 
+          />
           <View style={appointmentStyles.doctorProfileInfo}>
             <Text style={appointmentStyles.doctorDetailName}>{appointmentData.doctorName}</Text>
             <Text style={appointmentStyles.doctorDetailSpecialty}>{appointmentData.specialty}</Text>

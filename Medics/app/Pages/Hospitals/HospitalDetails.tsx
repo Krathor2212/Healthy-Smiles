@@ -107,7 +107,7 @@ export default function HospitalDetails() {
       specialty: doctor.specialty,
       rating: doctor.rating.toString(),
       distance: params.distance,
-      image: doctor.image,
+      image: doctor.image || 'https://via.placeholder.com/150',
       experience: doctor.experience,
     });
   };
@@ -219,7 +219,10 @@ export default function HospitalDetails() {
                   style={styles.doctorCard}
                   onPress={() => handleBookAppointment(doctor)}
                 >
-                  <Image source={{ uri: doctor.image }} style={styles.doctorImage} />
+                  <Image 
+                    source={{ uri: doctor.image || 'https://via.placeholder.com/150' }} 
+                    style={styles.doctorImage} 
+                  />
                   <View style={styles.doctorInfo}>
                     <Text style={styles.doctorName}>{doctor.name}</Text>
                     <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>

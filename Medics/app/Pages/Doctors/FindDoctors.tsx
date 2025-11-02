@@ -158,7 +158,10 @@ export default function FindDoctorsScreen() {
                   style={findDoctorsStyles.doctorListItem}
                   onPress={() => handleBookAppointment(doctor)}
                 >
-                  <Image source={{ uri: doctor.image }} style={findDoctorsStyles.doctorListImage} />
+                  <Image 
+                    source={{ uri: doctor.image || 'https://via.placeholder.com/150' }} 
+                    style={findDoctorsStyles.doctorListImage} 
+                  />
                   <View style={findDoctorsStyles.doctorInfo}>
                     <Text style={findDoctorsStyles.doctorName}>{doctor.name}</Text>
                     <Text style={findDoctorsStyles.doctorSpecialty}>{doctor.specialty}</Text>
@@ -202,11 +205,14 @@ export default function FindDoctorsScreen() {
                 specialty: doctor.specialty,
                 rating: '4.7',
                 distance: '800m away',
-                image: doctor.image,
+                image: doctor.image || 'https://via.placeholder.com/150',
                 experience: '10 years',
               })}
             >
-              <Image source={{ uri: doctor.image }} style={findDoctorsStyles.recentDoctorImage} />
+              <Image 
+                source={{ uri: doctor.image || 'https://via.placeholder.com/150' }} 
+                style={findDoctorsStyles.recentDoctorImage} 
+              />
               <Text style={findDoctorsStyles.recentDoctorName}>{doctor.name}</Text>
               <Text style={findDoctorsStyles.recentDoctorSpecialty}>{doctor.specialty}</Text>
             </TouchableOpacity>

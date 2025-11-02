@@ -257,11 +257,14 @@ export default function HomeScreen() {
                 specialty: doc.specialty,
                 rating: String(doc.rating),
                 distance: doc.distance,
-                image: doc.image,
+                image: doc.image || 'https://via.placeholder.com/150',
                 experience: doc.experience,
               })}
             >
-              <Image source={{ uri: doc.image }} style={homeStyles.doctorImage} />
+              <Image 
+                source={{ uri: doc.image || 'https://via.placeholder.com/150' }} 
+                style={homeStyles.doctorImage} 
+              />
               <Text style={homeStyles.doctorName}>{doc.name}</Text>
               <Text style={homeStyles.doctorSpecialty}>{doc.specialty}</Text>
               <View style={homeStyles.doctorInfoRow}>
