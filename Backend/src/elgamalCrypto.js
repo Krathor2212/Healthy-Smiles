@@ -71,9 +71,10 @@ class ElGamalCrypto {
    * Decrypt file using El Gamal
    * @param {Object} ciphertext - { c1, c2 }
    * @param {Object} privateKey - El Gamal private key {x, p}
+   * @param {Number} expectedSize - Expected size of decrypted chunk in bytes (optional)
    * @returns {Buffer} Decrypted file buffer
    */
-  static decryptFile(ciphertext, privateKey) {
+  static decryptFile(ciphertext, privateKey, expectedSize = null) {
     const p = bigInt(privateKey.p);
     const x = bigInt(privateKey.x);
     const c1 = bigInt(ciphertext.c1);
@@ -91,9 +92,17 @@ class ElGamalCrypto {
     // Convert big integer back to hex string then to buffer
     let hexMessage = message.toString(16);
     
-    // Ensure even length for hex string
-    if (hexMessage.length % 2 !== 0) {
-      hexMessage = '0' + hexMessage;
+    // If expected size is provided, pad the hex string to match
+    if (expectedSize !== null) {
+      const expectedHexLength = expectedSize * 2; // 2 hex chars per byte
+      while (hexMessage.length < expectedHexLength) {
+        hexMessage = '0' + hexMessage;
+      }
+    } else {
+      // Ensure even length for hex string
+      if (hexMessage.length % 2 !== 0) {
+        hexMessage = '0' + hexMessage;
+      }
     }
     
     return Buffer.from(hexMessage, 'hex');
@@ -166,12 +175,17 @@ class ElGamalCrypto {
    * Decrypt large file from chunks
    * @param {Array<Object>} encryptedChunks - Array of {c1, c2}
    * @param {Object} privateKey - El Gamal private key
+   * @param {Number} chunkSize - Size of each chunk in bytes (default 200)
    * @returns {Buffer} Decrypted file buffer
    */
-  static decryptLargeFile(encryptedChunks, privateKey) {
-    const decryptedChunks = encryptedChunks.map(chunk => 
-      this.decryptFile(chunk, privateKey)
-    );
+  static decryptLargeFile(encryptedChunks, privateKey, chunkSize = 200) {
+    const decryptedChunks = encryptedChunks.map((chunk, index) => {
+      // All chunks except the last should be exactly chunkSize bytes
+      // The last chunk can be smaller
+      const expectedSize = index < encryptedChunks.length - 1 ? chunkSize : null;
+      return this.decryptFile(chunk, privateKey, expectedSize);
+    });
+    
     return Buffer.concat(decryptedChunks);
   }
 }

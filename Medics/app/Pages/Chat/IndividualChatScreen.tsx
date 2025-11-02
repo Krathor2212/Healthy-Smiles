@@ -302,7 +302,7 @@ const IndividualChatScreen: React.FC = () => {
   const handleAttachFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
+        type: ['image/*', 'application/pdf'],
         copyToCacheDirectory: true,
       });
 
@@ -311,6 +311,32 @@ const IndividualChatScreen: React.FC = () => {
       }
 
       const file = result.assets[0];
+      
+      // Validate file type
+      const allowedTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/bmp',
+        'application/pdf'
+      ];
+
+      const fileType = file.mimeType?.toLowerCase() || '';
+      const fileName = file.name?.toLowerCase() || '';
+      
+      // Check by MIME type or file extension
+      const isValidType = allowedTypes.includes(fileType) || 
+                          fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp|pdf)$/);
+
+      if (!isValidType) {
+        Alert.alert(
+          'Invalid File Type',
+          'Only images (JPEG, PNG, GIF, WebP, BMP) and PDF files are allowed.'
+        );
+        return;
+      }
       
       // Check file size (10MB limit)
       if (file.size && file.size > 10 * 1024 * 1024) {

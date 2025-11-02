@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Users, Search, FileText, Calendar, Phone, Mail, Eye, MessageCircle, Download, ExternalLink } from 'lucide-react';
+import { Users, Search, FileText, Calendar, Phone, Mail, Eye, MessageCircle, Download, ExternalLink, RefreshCw } from 'lucide-react';
 import type { Patient } from '../types';
 
 const Patients: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [loadingFileId, setLoadingFileId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: patients, isLoading } = useQuery<Patient[]>({
     queryKey: ['patients', searchQuery],
@@ -53,9 +56,10 @@ const Patients: React.FC = () => {
     },
     onSuccess: (data) => {
       // Navigate to chats page with the chat selected
-      navigate(`/chats?chatId=${data.chat.id}`);
+      navigate(`/chats?chatId=${data.chatId}`);
     },
     onError: (error: any) => {
+      console.error('Start chat error:', error);
       alert(error.response?.data?.error || 'Failed to start chat');
     },
   });
@@ -87,6 +91,19 @@ const Patients: React.FC = () => {
       if (confirm('Send an access request to this patient to view their medical files?')) {
         requestAccessMutation.mutate(selectedPatient.id);
       }
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['patients'] }),
+        queryClient.invalidateQueries({ queryKey: ['authorizations'] }),
+        queryClient.invalidateQueries({ queryKey: ['patientFiles'] })
+      ]);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
     }
   };
 
@@ -131,10 +148,16 @@ const Patients: React.FC = () => {
   };
 
   const handleViewFile = async (fileId: string, filename: string) => {
+    // Prevent multiple clicks
+    if (loadingFileId) return;
+    
     try {
+      setLoadingFileId(fileId);
+      
       const token = localStorage.getItem('token');
       if (!token) {
         alert('Please login to view files');
+        setLoadingFileId(null);
         return;
       }
 
@@ -145,15 +168,14 @@ const Patients: React.FC = () => {
         responseType: 'blob',
       });
 
-      console.log('Response received:', response.status, response.headers['content-type']);
-
       const contentType = response.headers['content-type'];
-      const blob = new Blob([response.data], { type: contentType });
-      const url = window.URL.createObjectURL(blob);
       
-      console.log('Created blob URL:', url);
-      console.log('Blob size:', blob.size);
-      console.log('Content type:', contentType);
+      // response.data is already a Blob when using responseType: 'blob'
+      const blob = response.data instanceof Blob 
+        ? response.data 
+        : new Blob([response.data], { type: contentType });
+      
+      const url = window.URL.createObjectURL(blob);
       
       // Set preview state to show modal
       setPreviewFile({ url, name: filename, type: contentType });
@@ -172,6 +194,8 @@ const Patients: React.FC = () => {
       }
       
       alert(errorMessage);
+    } finally {
+      setLoadingFileId(null);
     }
   };
 
@@ -185,9 +209,22 @@ const Patients: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Patients</h1>
-        <p className="text-gray-600 mt-1">View and manage patient records</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Patients</h1>
+          <p className="text-gray-600 mt-1">View and manage patient records</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className={`flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-all ${
+            isRefreshing ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+          title="Refresh data"
+        >
+          <RefreshCw className={`w-5 h-5 text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="text-gray-700 font-medium">Refresh</span>
+        </button>
       </div>
 
       {/* Search */}
@@ -353,7 +390,7 @@ const Patients: React.FC = () => {
                 
                 <div>
                   <label className="text-sm font-medium text-gray-500">Phone</label>
-                  <p className="text-gray-900">{selectedPatient.phone}</p>
+                  <p className="text-gray-900">{selectedPatient.phone || 'Not provided'}</p>
                 </div>
                 
                 {selectedPatient.dateOfBirth && (
@@ -401,14 +438,28 @@ const Patients: React.FC = () => {
                         <div className="flex items-center gap-1 ml-2">
                           <button
                             onClick={() => handleViewFile(file.id, file.filename || file.name || 'file')}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
-                            title="View file"
+                            disabled={loadingFileId === file.id}
+                            className={`p-1.5 rounded transition-colors flex-shrink-0 relative ${
+                              loadingFileId === file.id 
+                                ? 'bg-blue-100 cursor-wait' 
+                                : 'text-blue-600 hover:bg-blue-50'
+                            }`}
+                            title={loadingFileId === file.id ? "Loading..." : "View file"}
                           >
-                            <ExternalLink className="w-4 h-4" />
+                            {loadingFileId === file.id ? (
+                              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <ExternalLink className="w-4 h-4" />
+                            )}
                           </button>
                           <button
                             onClick={() => handleDownloadFile(file.id)}
-                            className="p-1.5 text-primary-600 hover:bg-primary-50 rounded transition-colors flex-shrink-0"
+                            disabled={loadingFileId === file.id}
+                            className={`p-1.5 rounded transition-colors flex-shrink-0 ${
+                              loadingFileId === file.id
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-primary-600 hover:bg-primary-50'
+                            }`}
                             title="Download file"
                           >
                             <Download className="w-4 h-4" />
@@ -431,11 +482,31 @@ const Patients: React.FC = () => {
                   <MessageCircle className="w-4 h-4 mr-2 inline" />
                   {initiateChatMutation.isPending ? 'Starting Chat...' : 'Start Chat'}
                 </button>
-                <button className="w-full btn-secondary">
+                <button 
+                  onClick={() => navigate('/appointments', { 
+                    state: { 
+                      patientId: selectedPatient.id,
+                      patientName: selectedPatient.name 
+                    } 
+                  })}
+                  className="w-full btn-secondary"
+                >
                   <Calendar className="w-4 h-4 mr-2 inline" />
                   View Appointments
                 </button>
-                <button className="w-full btn-secondary">
+                <button 
+                  onClick={() => navigate('/prescriptions', { 
+                    state: { 
+                      selectedPatient: {
+                        id: selectedPatient.id,
+                        name: selectedPatient.name,
+                        email: selectedPatient.email,
+                        phone: selectedPatient.phone
+                      }
+                    } 
+                  })}
+                  className="w-full btn-secondary"
+                >
                   <FileText className="w-4 h-4 mr-2 inline" />
                   Create Prescription
                 </button>
@@ -452,33 +523,64 @@ const Patients: React.FC = () => {
 
       {/* File Preview Modal */}
       {previewFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75" onClick={closePreview}>
-          <div className="relative max-w-7xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-white rounded-lg shadow-xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b">
-                <h3 className="text-lg font-semibold text-gray-900">{previewFile.name}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4" onClick={closePreview}>
+          <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col max-h-full">
+              <div className="flex items-center justify-between p-4 border-b bg-white flex-shrink-0">
+                <h3 className="text-lg font-semibold text-gray-900 truncate">{previewFile.name}</h3>
                 <button
                   onClick={closePreview}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors ml-4 flex-shrink-0"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
-              <div className="p-4 max-h-[80vh] overflow-auto">
+              <div className="p-6 overflow-auto flex-1 flex items-center justify-center bg-gray-50">
                 {previewFile.type.startsWith('image/') ? (
                   <img 
                     src={previewFile.url} 
                     alt={previewFile.name} 
-                    className="max-w-full h-auto mx-auto"
+                    className="max-w-full max-h-full object-contain rounded shadow-lg"
+                    style={{ maxHeight: 'calc(90vh - 120px)' }}
                     onError={(e) => {
                       console.error('Image failed to load:', previewFile.url);
                       e.currentTarget.src = '';
                     }}
                   />
                 ) : previewFile.type === 'application/pdf' ? (
-                  <iframe src={previewFile.url} className="w-full h-[70vh]" title={previewFile.name} />
+                  <div className="w-full h-full flex flex-col">
+                    <object 
+                      data={previewFile.url}
+                      type="application/pdf"
+                      className="w-full flex-1 rounded border-2 border-gray-200" 
+                      style={{ minHeight: '70vh' }}
+                    >
+                      <div className="text-center py-12">
+                        <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600">PDF preview not available in your browser</p>
+                        <a 
+                          href={previewFile.url} 
+                          download={previewFile.name}
+                          className="inline-flex items-center mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download PDF
+                        </a>
+                      </div>
+                    </object>
+                    <div className="mt-4 text-center">
+                      <a 
+                        href={previewFile.url} 
+                        download={previewFile.name}
+                        className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download PDF
+                      </a>
+                    </div>
+                  </div>
                 ) : (
                   <div className="text-center py-12">
                     <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />

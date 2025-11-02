@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import api from '../services/api';
-import { Plus, Search, Trash2, FileText, User, Save, X } from 'lucide-react';
+import { Plus, Search, Trash2, FileText, User, Save, X, RefreshCw } from 'lucide-react';
 import type { Patient, Medicine, PrescriptionItem } from '../types';
 
 const Prescriptions: React.FC = () => {
+  const location = useLocation();
   const [searchPatient, setSearchPatient] = useState('');
   const [selectedLetter, setSelectedLetter] = useState('A');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -12,6 +14,17 @@ const Prescriptions: React.FC = () => {
   const [diagnosis, setDiagnosis] = useState('');
   const [notes, setNotes] = useState('');
   const [showMedicineSearch, setShowMedicineSearch] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Auto-select patient if coming from Patients page
+  useEffect(() => {
+    if (location.state?.selectedPatient) {
+      setSelectedPatient(location.state.selectedPatient);
+      // Clear the search since patient is already selected
+      setSearchPatient('');
+    }
+  }, [location.state]);
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -103,12 +116,37 @@ const Prescriptions: React.FC = () => {
     createPrescription.mutate();
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['searchPatients'] }),
+        queryClient.invalidateQueries({ queryKey: ['medicines'] })
+      ]);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Create Prescription</h1>
-        <p className="text-gray-600 mt-1">Prescribe medicines to your patients</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Create Prescription</h1>
+          <p className="text-gray-600 mt-1">Prescribe medicines to your patients</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className={`flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-all ${
+            isRefreshing ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+          title="Refresh data"
+        >
+          <RefreshCw className={`w-5 h-5 text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="text-gray-700 font-medium">Refresh</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

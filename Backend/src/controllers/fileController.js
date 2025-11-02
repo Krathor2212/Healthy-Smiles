@@ -54,6 +54,33 @@ async function uploadMedicalFile(req, res) {
       });
     }
 
+    // Validate file type - only allow images and PDFs
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/bmp',
+      'application/pdf'
+    ];
+
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid file type. Only images (JPEG, PNG, GIF, WebP, BMP) and PDF files are allowed.'
+      });
+    }
+
+    // Validate file size (e.g., max 10MB)
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    if (req.file.size > maxFileSize) {
+      return res.status(400).json({
+        success: false,
+        error: 'File too large. Maximum file size is 10MB.'
+      });
+    }
+
     const { patientId, description } = req.body;
     const targetPatientId = patientId || userId;
 
@@ -280,6 +307,7 @@ async function downloadMedicalFile(req, res) {
         }, privateKey);
       }
     } catch (decryptErr) {
+      console.error('Decryption error, trying fallback:', decryptErr.message);
       // Fallback: try as single chunk if array parsing fails
       decryptedBuffer = ElGamalCrypto.decryptFile({
         c1: file.encrypted_c1,

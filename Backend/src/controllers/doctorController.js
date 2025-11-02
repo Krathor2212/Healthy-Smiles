@@ -29,18 +29,15 @@ async function getDoctorStats(req, res) {
     const doctorId = req.user.id;
     if (req.user.role !== 'doctor') return res.status(403).json({ error: 'forbidden' });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     const statsQ = `
       SELECT 
-        (SELECT COUNT(*) FROM appointments WHERE doctor_id = $1 AND appointment_date::date = $2::date) as today_appointments,
+        (SELECT COUNT(*) FROM appointments WHERE doctor_id = $1 AND appointment_date::date = CURRENT_DATE) as today_appointments,
         (SELECT COUNT(DISTINCT patient_id) FROM appointments WHERE doctor_id = $1) as total_patients,
-        (SELECT COUNT(*) FROM prescriptions WHERE doctor_id = $1) as prescriptions_issued,
-        (SELECT COUNT(DISTINCT patient_id) FROM appointments WHERE doctor_id = $1 AND status = 'Completed' AND appointment_date >= NOW() - INTERVAL '30 days') as active_patients
+        (SELECT COUNT(*) FROM prescriptions WHERE doctor_id = $2) as prescriptions_issued,
+        (SELECT COUNT(DISTINCT patient_id) FROM appointments WHERE doctor_id = $1 AND LOWER(status) = 'completed' AND appointment_date >= CURRENT_DATE - INTERVAL '30 days') as active_patients
     `;
     
-    const statsR = await db.query(statsQ, [doctorId, today]);
+    const statsR = await db.query(statsQ, [doctorId, doctorId]);
     const stats = {
       todayAppointments: parseInt(statsR.rows[0].today_appointments) || 0,
       totalPatients: parseInt(statsR.rows[0].total_patients) || 0,
@@ -50,18 +47,14 @@ async function getDoctorStats(req, res) {
 
     res.json(stats);
   } catch (err) {
-    console.error('Get doctor stats error:', err);
-    res.status(500).json({ error: 'internal_error' });
+    console.error('[getDoctorStats] Error:', err);
+    res.status(500).json({ error: 'internal_error', message: err.message });
   }
 }
-
 async function getTodayAppointments(req, res) {
   try {
     const doctorId = req.user.id;
     if (req.user.role !== 'doctor') return res.status(403).json({ error: 'forbidden' });
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     const q = `
       SELECT 
@@ -76,11 +69,11 @@ async function getTodayAppointments(req, res) {
         p.email_enc
       FROM appointments a
       JOIN patients p ON a.patient_id = p.id
-      WHERE a.doctor_id = $1 AND a.appointment_date::date = $2::date
+      WHERE a.doctor_id = $1 AND a.appointment_date::date = CURRENT_DATE
       ORDER BY a.appointment_time ASC
     `;
     
-    const r = await db.query(q, [doctorId, today]);
+    const r = await db.query(q, [doctorId]);
     
     const appointments = r.rows.map(row => ({
       id: row.id,
@@ -189,30 +182,36 @@ async function updateAppointmentStatus(req, res) {
 
     if (req.user.role !== 'doctor') return res.status(403).json({ error: 'forbidden' });
 
-    // Verify appointment belongs to this doctor
-    const checkQ = `SELECT id FROM appointments WHERE id = $1 AND doctor_id = $2`;
+    console.log('[updateAppointmentStatus] appointmentId:', appointmentId, 'doctorId:', doctorId, 'status:', status);
+
+    // Verify appointment belongs to this doctor - id is uuid, doctor_id is text
+    const checkQ = `SELECT id FROM appointments WHERE id = $1::uuid AND doctor_id = $2::text`;
     const checkR = await db.query(checkQ, [appointmentId, doctorId]);
     
     if (!checkR.rows.length) {
+      console.log('[updateAppointmentStatus] Appointment not found for this doctor');
       return res.status(404).json({ error: 'appointment_not_found' });
     }
 
+    console.log('[updateAppointmentStatus] Updating appointment...');
     const updateQ = `
       UPDATE appointments 
-      SET status = $1, notes = COALESCE($2, notes), updated_at = NOW()
-      WHERE id = $3
+      SET status = $1
+      WHERE id = $2::uuid
       RETURNING *
     `;
     
-    const updateR = await db.query(updateQ, [status, notes, appointmentId]);
+    const updateR = await db.query(updateQ, [status, appointmentId]);
+    console.log('[updateAppointmentStatus] Updated successfully');
     
     res.json({ 
       success: true,
       appointment: updateR.rows[0]
     });
   } catch (err) {
-    console.error('Update appointment status error:', err);
-    res.status(500).json({ error: 'internal_error' });
+    console.error('[updateAppointmentStatus] Error:', err);
+    console.error('[updateAppointmentStatus] Error stack:', err.stack);
+    res.status(500).json({ error: 'internal_error', message: err.message });
   }
 }
 

@@ -30,6 +30,9 @@ export interface Appointment {
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   reason?: string;
   notes?: string;
+  specialty?: string;
+  hospitalName?: string;
+  hospitalAddress?: string;
   createdAt: string;
 }
 

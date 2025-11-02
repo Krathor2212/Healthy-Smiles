@@ -98,7 +98,7 @@ export default function MedicalFileManagerScreen() {
       console.log('Backend URL:', BACKEND_URL);
       
       const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
+        type: ['image/*', 'application/pdf'],
         copyToCacheDirectory: true,
       });
 
@@ -106,10 +106,36 @@ export default function MedicalFileManagerScreen() {
 
       const doc = result.assets[0];
 
-      // Check file size (50MB limit)
-      const maxSize = 50 * 1024 * 1024; // 50MB
+      // Validate file type
+      const allowedTypes = [
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/bmp',
+        'application/pdf'
+      ];
+
+      const fileType = doc.mimeType?.toLowerCase() || '';
+      const fileName = doc.name?.toLowerCase() || '';
+      
+      // Check by MIME type or file extension
+      const isValidType = allowedTypes.includes(fileType) || 
+                          fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp|pdf)$/);
+
+      if (!isValidType) {
+        Alert.alert(
+          'Invalid File Type', 
+          'Only images (JPEG, PNG, GIF, WebP, BMP) and PDF files are allowed.'
+        );
+        return;
+      }
+
+      // Check file size (10MB limit to match backend)
+      const maxSize = 10 * 1024 * 1024; // 10MB
       if (doc.size && doc.size > maxSize) {
-        Alert.alert('File Too Large', 'Maximum file size is 50MB');
+        Alert.alert('File Too Large', 'Maximum file size is 10MB');
         return;
       }
 

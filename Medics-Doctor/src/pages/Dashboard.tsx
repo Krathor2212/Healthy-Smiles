@@ -1,10 +1,15 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Calendar, Users, FileText, Activity } from 'lucide-react';
+import { Calendar, Users, FileText, Activity, RefreshCw } from 'lucide-react';
 import type { Appointment } from '../types';
 
 const Dashboard: React.FC = () => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboardStats'],
@@ -18,7 +23,8 @@ const Dashboard: React.FC = () => {
   const { data: appointments, isLoading: appointmentsLoading } = useQuery<Appointment[]>({
     queryKey: ['todayAppointments'],
     queryFn: async () => {
-      const response = await api.get('/appointments/today');
+      const response = await api.get('/doctor/appointments/today');
+      console.log('Today\'s appointments response:', response.data);
       return response.data.appointments || [];
     },
   });
@@ -54,12 +60,47 @@ const Dashboard: React.FC = () => {
     },
   ];
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['dashboardStats'] }),
+        queryClient.invalidateQueries({ queryKey: ['todayAppointments'] })
+      ]);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
+  const handleAppointmentClick = (appointment: Appointment) => {
+    // Navigate to appointments page with the appointment pre-selected
+    navigate('/appointments', { 
+      state: { 
+        selectedAppointmentId: appointment.id,
+        selectedAppointment: appointment
+      } 
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className={`flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-all ${
+            isRefreshing ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+          title="Refresh dashboard"
+        >
+          <RefreshCw className={`w-5 h-5 text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="text-gray-700 font-medium">Refresh</span>
+        </button>
       </div>
 
       {/* Stats Grid */}
@@ -100,7 +141,8 @@ const Dashboard: React.FC = () => {
             {appointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={() => handleAppointmentClick(appointment)}
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-[#E6F4FE] rounded-full flex items-center justify-center">

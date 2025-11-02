@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
-import { MessageCircle, Search, Send, ArrowLeft, FileText, Image as ImageIcon, Video, File } from 'lucide-react';
+import { MessageCircle, Search, Send, ArrowLeft, FileText, Image as ImageIcon, Video, File, RefreshCw } from 'lucide-react';
 
 interface ChatContact {
   id: string;
@@ -34,6 +34,7 @@ const Chats: React.FC = () => {
   const [selectedChat, setSelectedChat] = useState<ChatContact | null>(null);
   const [messageText, setMessageText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -93,6 +94,18 @@ const Chats: React.FC = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['chats'] }),
+        selectedChat && queryClient.invalidateQueries({ queryKey: ['messages', selectedChat.id] })
+      ]);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -137,9 +150,22 @@ const Chats: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Messages</h1>
-        <p className="text-gray-600 mt-1">Chat with your patients</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Chats</h1>
+          <p className="text-gray-600 mt-1">Chat with your patients</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className={`flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-all ${
+            isRefreshing ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+          title="Refresh chats"
+        >
+          <RefreshCw className={`w-5 h-5 text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="text-gray-700 font-medium">Refresh</span>
+        </button>
       </div>
 
       {/* Chat Interface */}
