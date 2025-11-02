@@ -352,6 +352,146 @@ async function getAllDoctors(req, res) {
   }
 }
 
+async function getDoctorProfile(req, res) {
+  try {
+    const doctorId = req.user.id;
+    if (req.user.role !== 'doctor') return res.status(403).json({ error: 'forbidden' });
+
+    const q = `
+      SELECT id, name_enc, email_enc, specialty_enc, 
+             phone_enc, qualifications_enc, experience_enc, 
+             hospital_enc, address_enc, bio_enc 
+      FROM doctors 
+      WHERE id = $1
+    `;
+    const r = await db.query(q, [doctorId]);
+
+    if (!r.rows.length) {
+      return res.status(404).json({ error: 'doctor_not_found' });
+    }
+
+    const doctor = r.rows[0];
+    const { decryptText } = require('../cryptoUtil');
+
+    res.json({
+      id: doctor.id,
+      name: doctor.name_enc ? decryptText(doctor.name_enc) : '',
+      email: doctor.email_enc ? decryptText(doctor.email_enc) : '',
+      specialty: doctor.specialty_enc ? decryptText(doctor.specialty_enc) : '',
+      phone: doctor.phone_enc ? decryptText(doctor.phone_enc) : '',
+      qualifications: doctor.qualifications_enc ? decryptText(doctor.qualifications_enc) : '',
+      experience: doctor.experience_enc ? decryptText(doctor.experience_enc) : '',
+      hospital: doctor.hospital_enc ? decryptText(doctor.hospital_enc) : '',
+      address: doctor.address_enc ? decryptText(doctor.address_enc) : '',
+      bio: doctor.bio_enc ? decryptText(doctor.bio_enc) : ''
+    });
+  } catch (err) {
+    console.error('[getDoctorProfile] Error:', err);
+    res.status(500).json({ error: 'internal_error' });
+  }
+}
+
+async function updateDoctorProfile(req, res) {
+  try {
+    const doctorId = req.user.id;
+    if (req.user.role !== 'doctor') return res.status(403).json({ error: 'forbidden' });
+
+    const { name, specialty, phone, qualifications, experience, hospital, address, bio } = req.body;
+    const { encryptText, decryptText } = require('../cryptoUtil');
+
+    // Build update query dynamically
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (name !== undefined) {
+      updates.push(`name_enc = $${paramCount}`);
+      values.push(name ? encryptText(name) : null);
+      paramCount++;
+    }
+
+    if (specialty !== undefined) {
+      updates.push(`specialty_enc = $${paramCount}`);
+      values.push(specialty ? encryptText(specialty) : null);
+      paramCount++;
+    }
+
+    if (phone !== undefined) {
+      updates.push(`phone_enc = $${paramCount}`);
+      values.push(phone ? encryptText(phone) : null);
+      paramCount++;
+    }
+
+    if (qualifications !== undefined) {
+      updates.push(`qualifications_enc = $${paramCount}`);
+      values.push(qualifications ? encryptText(qualifications) : null);
+      paramCount++;
+    }
+
+    if (experience !== undefined) {
+      updates.push(`experience_enc = $${paramCount}`);
+      values.push(experience ? encryptText(experience) : null);
+      paramCount++;
+    }
+
+    if (hospital !== undefined) {
+      updates.push(`hospital_enc = $${paramCount}`);
+      values.push(hospital ? encryptText(hospital) : null);
+      paramCount++;
+    }
+
+    if (address !== undefined) {
+      updates.push(`address_enc = $${paramCount}`);
+      values.push(address ? encryptText(address) : null);
+      paramCount++;
+    }
+
+    if (bio !== undefined) {
+      updates.push(`bio_enc = $${paramCount}`);
+      values.push(bio ? encryptText(bio) : null);
+      paramCount++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'no_fields_to_update' });
+    }
+
+    // Add doctor ID as last parameter
+    values.push(doctorId);
+
+    const query = `
+      UPDATE doctors 
+      SET ${updates.join(', ')} 
+      WHERE id = $${paramCount}
+      RETURNING id, name_enc, email_enc, specialty_enc, 
+                phone_enc, qualifications_enc, experience_enc, 
+                hospital_enc, address_enc, bio_enc
+    `;
+
+    const r = await db.query(query, values);
+    const doctor = r.rows[0];
+
+    res.json({
+      success: true,
+      profile: {
+        id: doctor.id,
+        name: doctor.name_enc ? decryptText(doctor.name_enc) : '',
+        email: doctor.email_enc ? decryptText(doctor.email_enc) : '',
+        specialty: doctor.specialty_enc ? decryptText(doctor.specialty_enc) : '',
+        phone: doctor.phone_enc ? decryptText(doctor.phone_enc) : '',
+        qualifications: doctor.qualifications_enc ? decryptText(doctor.qualifications_enc) : '',
+        experience: doctor.experience_enc ? decryptText(doctor.experience_enc) : '',
+        hospital: doctor.hospital_enc ? decryptText(doctor.hospital_enc) : '',
+        address: doctor.address_enc ? decryptText(doctor.address_enc) : '',
+        bio: doctor.bio_enc ? decryptText(doctor.bio_enc) : ''
+      }
+    });
+  } catch (err) {
+    console.error('[updateDoctorProfile] Error:', err);
+    res.status(500).json({ error: 'internal_error' });
+  }
+}
+
 module.exports = { 
   getPatientProfileForDoctor,
   getDoctorStats,
@@ -360,5 +500,7 @@ module.exports = {
   updateAppointmentStatus,
   getPatients,
   searchMedicines,
-  getAllDoctors
+  getAllDoctors,
+  getDoctorProfile,
+  updateDoctorProfile
 };

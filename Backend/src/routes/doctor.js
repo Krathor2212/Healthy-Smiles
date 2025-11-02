@@ -9,11 +9,19 @@ const {
   updateAppointmentStatus,
   getPatients,
   searchMedicines,
-  getAllDoctors
+  getAllDoctors,
+  getDoctorProfile,
+  updateDoctorProfile
 } = require('../controllers/doctorController');
 
 // GET /api/doctor/stats
 router.get('/stats', auth(true), getDoctorStats);
+
+// GET /api/doctor/profile
+router.get('/profile', auth(true), getDoctorProfile);
+
+// PUT /api/doctor/profile
+router.put('/profile', auth(true), updateDoctorProfile);
 
 // GET /api/doctor/appointments/today
 router.get('/appointments/today', auth(true), getTodayAppointments);

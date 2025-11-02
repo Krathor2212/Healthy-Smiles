@@ -9,6 +9,7 @@ import Appointments from './pages/Appointments';
 import Patients from './pages/Patients';
 import Prescriptions from './pages/Prescriptions';
 import Chats from './pages/Chats';
+import Settings from './pages/Settings';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -63,7 +64,7 @@ function App() {
               <Route path="patients" element={<Patients />} />
               <Route path="prescriptions" element={<Prescriptions />} />
               <Route path="chats" element={<Chats />} />
-              <Route path="settings" element={<div className="text-2xl font-bold">Settings (Coming Soon)</div>} />
+              <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
