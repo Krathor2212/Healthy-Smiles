@@ -414,4 +414,39 @@ async function doctorLogin(req, res) {
   }
 }
 
-module.exports = { register, login, forgotPassword, verifyCode, resetPassword, doctorLogin };
+/**
+ * POST /api/auth/push-token
+ * Save user's Expo push notification token
+ */
+async function savePushToken(req, res) {
+  try {
+    const { pushToken } = req.body;
+    const userId = req.user.id;
+
+    if (!pushToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Push token is required'
+      });
+    }
+
+    // Update patient's push token
+    await db.query(
+      'UPDATE patients SET push_token = $1 WHERE id = $2',
+      [pushToken, userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Push token saved successfully'
+    });
+  } catch (err) {
+    console.error('Save push token error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save push token'
+    });
+  }
+}
+
+module.exports = { register, login, forgotPassword, verifyCode, resetPassword, doctorLogin, savePushToken };

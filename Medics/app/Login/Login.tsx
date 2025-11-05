@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppData } from '../contexts/AppDataContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 export default function LoginScreen({ navigation }: { navigation: NavigationProp<any> }) {
   // Default role set to 'patient' — role selection removed
@@ -31,6 +32,9 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
 
   // Get refreshData from AppDataContext to fetch data after login
   const { refreshData } = useAppData();
+  
+  // Get registerPushToken from NotificationContext
+  const { registerPushToken } = useNotifications();
 
   // --- Handlers ---
   const handleLogin = async () => {
@@ -78,6 +82,15 @@ export default function LoginScreen({ navigation }: { navigation: NavigationProp
         // Fetch app data after successful login
         console.log('✅ Login successful, fetching app data...');
         await refreshData();
+        
+        // Register push token after login
+        console.log('📱 Registering push token after login...');
+        try {
+          await registerPushToken();
+        } catch (pushErr) {
+          console.warn('Failed to register push token:', pushErr);
+          // Don't fail login if push token registration fails
+        }
         
         // Check if profile is completed
         const backend = (Constants.expoConfig?.extra?.BACKEND_URL || (Constants.manifest as any)?.extra?.BACKEND_URL) || 'http://10.11.146.215:4000';

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, forgotPassword, verifyCode, resetPassword, doctorLogin } = require('../controllers/authController');
+const { register, login, forgotPassword, verifyCode, resetPassword, doctorLogin, savePushToken } = require('../controllers/authController');
+const { authenticateToken } = require('../middleware/auth');
 
 // POST /api/auth/register
 router.post('/register', register);
@@ -19,5 +20,8 @@ router.post('/verify-code', verifyCode);
 
 // POST /auth/reset-password
 router.post('/reset-password', resetPassword);
+
+// POST /api/auth/push-token - Save push notification token
+router.post('/push-token', authenticateToken, savePushToken);
 
 module.exports = router;

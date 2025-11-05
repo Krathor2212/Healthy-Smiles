@@ -15,6 +15,9 @@ import { useAuthorization } from '../../contexts/AuthorizationContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://10.10.112.140:4000';
 
 interface Doctor {
   id: string;
@@ -47,12 +50,13 @@ const AuthorizedDoctors: React.FC<{ navigation: any }> = ({ navigation }) => {
     try {
       setLoadingDoctors(true);
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get('http://10.10.112.140:4000/api/doctors', {
+      const response = await axios.get(`${BACKEND_URL}/api/doctors`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDoctors(response.data.doctors || []);
       setShowDoctorListModal(true);
     } catch (error: any) {
+      console.error('Failed to load doctors:', error);
       Alert.alert('Error', error.response?.data?.error || 'Failed to load doctors');
     } finally {
       setLoadingDoctors(false);
@@ -64,13 +68,19 @@ const AuthorizedDoctors: React.FC<{ navigation: any }> = ({ navigation }) => {
 
     try {
       const days = expiryDays ? parseInt(expiryDays) : undefined;
+      console.log(`📝 Granting access to ${selectedDoctor.name} (ID: ${selectedDoctor.id}) for ${days || 'unlimited'} days`);
+      
       await grantAccess(selectedDoctor.id, days);
+      
       Alert.alert('Success', `Access granted to Dr. ${selectedDoctor.name}`);
       setShowGrantModal(false);
+      setShowDoctorListModal(false);
       setSelectedDoctor(null);
       setExpiryDays('30');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to grant access');
+      console.error('❌ Failed to grant access:', error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.details || error.message || 'Failed to grant access';
+      Alert.alert('Error', errorMessage);
     }
   };
 

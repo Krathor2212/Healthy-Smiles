@@ -37,6 +37,7 @@ type NotificationContextType = {
   markAsRead: (notificationId: string) => Promise<void>;
   handleNotificationPress: (notification: Notification, navigation: any) => void;
   expoPushToken: string;
+  registerPushToken: () => Promise<void>;
 };
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -45,14 +46,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [expoPushToken, setExpoPushToken] = useState('');
+  const tokenSentRef = useRef(false);
 
   // Register for push notifications
   useEffect(() => {
     registerForPushNotificationsAsync().then(token => {
+      console.log('📱 Push token received:', token);
       if (token) {
         setExpoPushToken(token);
+        console.log('🔄 Sending push token to backend...');
         // Send token to backend
         sendPushTokenToBackend(token);
+      } else {
+        console.warn('⚠️ No push token obtained from device');
       }
     });
 
@@ -88,6 +94,34 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     };
   }, []);
+
+  // Retry sending push token when auth token becomes available
+  useEffect(() => {
+    if (expoPushToken && !tokenSentRef.current) {
+      const checkAndSendToken = async () => {
+        const authToken = await AsyncStorage.getItem('token');
+        if (authToken) {
+          console.log('🔑 Auth token found, retrying push token registration...');
+          await sendPushTokenToBackend(expoPushToken);
+          tokenSentRef.current = true;
+        }
+      };
+
+      // Check immediately
+      checkAndSendToken();
+
+      // Also check every 5 seconds for first minute after app start
+      const interval = setInterval(checkAndSendToken, 5000);
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+      }, 60000); // Stop after 1 minute
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [expoPushToken]);
 
   // Fetch notifications from backend
   const refreshNotifications = useCallback(async () => {
@@ -177,7 +211,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      const response = await fetch(`${BACKEND_URL}/api/user/push-token`, {
+      const response = await fetch(`${BACKEND_URL}/api/auth/push-token`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -187,9 +221,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
       
       if (response.ok) {
-        console.log('Push token registered with backend');
+        const data = await response.json();
+        console.log('✅ Push token registered with backend:', data.message);
       } else {
-        console.warn('Failed to register push token with backend:', response.status);
+        const errorData = await response.json();
+        console.warn('Failed to register push token with backend:', response.status, errorData);
       }
     } catch (error) {
       console.error('Send push token error:', error);
@@ -204,7 +240,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         refreshNotifications,
         markAsRead,
         handleNotificationPress,
-        expoPushToken
+        expoPushToken,
+        registerPushToken: () => sendPushTokenToBackend(expoPushToken)
       }}
     >
       {children}
@@ -239,6 +276,11 @@ async function registerForPushNotificationsAsync() {
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
+    
+    if (status !== 'granted') {
+      console.warn('Notification permission denied by user');
+      alert('Please enable notifications in your device settings to receive updates.');
+    }
   }
   
   if (finalStatus !== 'granted') {
@@ -247,22 +289,66 @@ async function registerForPushNotificationsAsync() {
   }
 
   try {
-    // Get project ID from app.json or app.config.js
+    // For standalone APK builds, we can get the token without strict project ID requirement
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     
-    if (!projectId) {
-      console.warn('No Expo project ID found. Push notifications will work locally but not for remote notifications.');
-      console.warn('To enable remote push notifications, add projectId to app.json under expo.extra.eas.projectId');
-      return; // Skip getting push token in development
+    console.log('🔍 Attempting to get push token...');
+    console.log('📋 Project ID:', projectId || 'Not found');
+    console.log('📱 Platform:', Platform.OS);
+    console.log('🏗️ Is Device:', Constants.isDevice, '(Note: APK builds may report false)');
+    
+    // Don't check isDevice for APK builds - they often report false even on real devices
+    
+    try {
+      if (projectId) {
+        console.log('✅ Using project ID method...');
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: projectId
+        });
+        token = tokenData.data;
+        console.log('✅ Got Expo push token via project ID:', token);
+      } else {
+        console.log('⚠️ No project ID, trying default method...');
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        token = tokenData.data;
+        console.log('✅ Got Expo push token:', token);
+      }
+    } catch (expoErr: any) {
+      console.warn('❌ Expo push token failed:', expoErr.message);
+      
+      // Fallback: Try to get device push token (works for standalone builds)
+      console.log('🔄 Trying device push token method...');
+      try {
+        const deviceTokenData = await Notifications.getDevicePushTokenAsync();
+        const deviceToken = deviceTokenData.data;
+        
+        // Format device token as Expo token for compatibility
+        if (Platform.OS === 'android' && typeof deviceToken === 'string') {
+          // Android FCM token - wrap it as an Expo token
+          token = `ExponentPushToken[${deviceToken}]`;
+          console.log('✅ Got device push token (formatted):', token);
+        } else {
+          token = String(deviceToken);
+          console.log('✅ Got device push token:', token);
+        }
+      } catch (deviceErr: any) {
+        console.error('❌ Device push token also failed:', deviceErr.message);
+        console.error('� This usually means:');
+        console.error('   1. Running on emulator (not supported)');
+        console.error('   2. No Google Play Services (Android)');
+        console.error('   3. Network connectivity issues');
+      }
     }
     
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId: projectId
-    })).data;
-    console.log('Expo Push Token:', token);
-  } catch (error) {
-    console.error('Error getting push token:', error);
-    // Don't throw - allow app to continue without push tokens
+    if (token) {
+      console.log('🎉 Successfully obtained push token!');
+      console.log('📏 Token length:', token.length);
+    } else {
+      console.warn('⚠️ Could not obtain any push token');
+    }
+  } catch (error: any) {
+    console.error('❌ Critical error getting push token:', error);
+    console.error('Stack:', error.stack);
   }
 
   return token;

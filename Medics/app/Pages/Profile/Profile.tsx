@@ -18,6 +18,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import type { RootStackParamList } from '../../Navigation/types';
+import { sendTestNotification } from '../../utils/testNotification';
+import { useNotifications } from '../../contexts/NotificationContext';
+import { forceGetPushToken } from '../../utils/forcePushToken';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://192.168.137.1:4000';
 
@@ -48,6 +51,11 @@ const menuItems: MenuItem[] = [
   { id: 4, iconName: 'medical-outline', iconSet: 'Ionicons', title: 'Prescriptions' },
   { id: 5, iconName: 'wallet-outline', iconSet: 'Ionicons', title: 'Payment History' },
   { id: 6, iconName: 'chatbox-ellipses-outline', iconSet: 'Ionicons', title: 'FAQs' },
+  { id: 12, iconName: 'refresh-outline', iconSet: 'Ionicons', title: 'Force Get Push Token' },
+  { id: 11, iconName: 'information-circle-outline', iconSet: 'Ionicons', title: 'Show Push Token Info' },
+  { id: 8, iconName: 'notifications-outline', iconSet: 'Ionicons', title: 'Test Notification' },
+  { id: 9, iconName: 'cloud-upload-outline', iconSet: 'Ionicons', title: 'Test Backend Notification' },
+  { id: 10, iconName: 'sync-outline', iconSet: 'Ionicons', title: 'Register Push Token' },
   { id: 7, iconName: 'log-out-outline', iconSet: 'Ionicons', title: 'Logout', isLogout: true },
 ];
 
@@ -71,6 +79,9 @@ export default function ProfileScreen(): React.ReactElement {
   const navigation = useNavigation<NavigationProp>();
   const [userProfile, setUserProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Get push token registration function
+  const { registerPushToken, expoPushToken } = useNotifications();
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -179,6 +190,183 @@ export default function ProfileScreen(): React.ReactElement {
       }
       if (item.title === 'FAQs') {
         navigation.navigate('FAQs' as any);
+        return;
+      }
+
+      if (item.title === 'Force Get Push Token') {
+        // Force get push token with detailed debugging
+        (async () => {
+          const token = await forceGetPushToken();
+          if (token) {
+            // Try to register it immediately
+            try {
+              const authToken = await AsyncStorage.getItem('token');
+              if (authToken) {
+                const response = await fetch(`${BACKEND_URL}/api/auth/push-token`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ pushToken: token })
+                });
+
+                if (response.ok) {
+                  Alert.alert('Complete Success! 🎉', 'Push token obtained AND registered with backend!');
+                } else {
+                  const error = await response.json();
+                  Alert.alert('Token Obtained But...', `Got token but backend registration failed: ${error.error}`);
+                }
+              }
+            } catch (err) {
+              console.error('Registration error:', err);
+            }
+          }
+        })();
+        return;
+      }
+
+      if (item.title === 'Show Push Token Info') {
+        // Show debug info about push token
+        const Constants = require('expo-constants').default;
+        const Platform = require('react-native').Platform;
+        
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+        const isDevice = Constants.isDevice;
+        
+        Alert.alert(
+          'Push Token Debug Info',
+          `Platform: ${Platform.OS}\n` +
+          `Is Device: ${isDevice ? 'Yes ✅' : 'No (Emulator) ❌'}\n` +
+          `Project ID: ${projectId || 'Not found ❌'}\n` +
+          `Push Token: ${expoPushToken ? expoPushToken.substring(0, 40) + '...' : 'Not available ❌'}\n` +
+          `Token Length: ${expoPushToken ? expoPushToken.length : 0}\n\n` +
+          `If token is missing:\n` +
+          `1. Check logs with USB connected\n` +
+          `2. Restart the app\n` +
+          `3. Check notification permissions`,
+          [
+            {
+              text: 'Copy Token',
+              onPress: () => {
+                if (expoPushToken) {
+                  Alert.alert('Token', expoPushToken);
+                }
+              }
+            },
+            { text: 'OK' }
+          ]
+        );
+        return;
+      }
+
+      if (item.title === 'Test Notification') {
+        sendTestNotification().then(success => {
+          if (success) {
+            Alert.alert('Success', 'Test notification sent! Check your notification bar.');
+          } else {
+            Alert.alert('Failed', 'Could not send notification. Please check permissions in device settings.');
+          }
+        });
+        return;
+      }
+
+      if (item.title === 'Test Backend Notification') {
+        // Test backend push notification
+        (async () => {
+          try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+              Alert.alert('Error', 'Not authenticated. Please login again.');
+              return;
+            }
+
+            const response = await fetch(`${BACKEND_URL}/api/notifications/test`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              Alert.alert('Success', 'Backend push notification sent! Check your notification bar in a moment.');
+              console.log('Backend notification response:', data);
+            } else {
+              const errorData = await response.json();
+              Alert.alert('Failed', `Could not send backend notification: ${errorData.error || 'Unknown error'}`);
+              console.error('Backend notification error:', errorData);
+            }
+          } catch (error) {
+            console.error('Test backend notification error:', error);
+            Alert.alert('Error', 'Failed to send backend notification. Check console for details.');
+          }
+        })();
+        return;
+      }
+
+      if (item.title === 'Register Push Token') {
+        // Manually register push token with retry
+        (async () => {
+          try {
+            console.log('📱 Current push token:', expoPushToken);
+            
+            if (!expoPushToken) {
+              // Token not available, show detailed alert with option to retry
+              Alert.alert(
+                'No Push Token', 
+                'Push token not available. This can happen if:\n\n' +
+                '1. You\'re on an emulator (use physical device)\n' +
+                '2. Notification permissions were denied\n' +
+                '3. Network connection issue\n\n' +
+                'Please:\n' +
+                '• Grant notification permissions\n' +
+                '• Restart the app\n' +
+                '• Use a physical device',
+                [
+                  { 
+                    text: 'Check Permissions', 
+                    onPress: async () => {
+                      const Notifications = await import('expo-notifications');
+                      const { status } = await Notifications.requestPermissionsAsync();
+                      if (status === 'granted') {
+                        Alert.alert(
+                          'Permissions Granted!', 
+                          'Notification permissions are now enabled.\n\nPlease restart the app to obtain the push token.',
+                          [
+                            { 
+                              text: 'Force Retry', 
+                              onPress: () => {
+                                // Force app to retry getting token
+                                Alert.alert('Info', 'Please close and reopen the app completely.');
+                              }
+                            },
+                            { text: 'OK' }
+                          ]
+                        );
+                      } else {
+                        Alert.alert('Denied', 'Notification permissions are required. Please enable them in Settings → Apps → Healthy Smiles → Notifications.');
+                      }
+                    }
+                  },
+                  { text: 'OK' }
+                ]
+              );
+              return;
+            }
+
+            console.log('📱 Manually registering push token:', expoPushToken);
+            await registerPushToken();
+            Alert.alert(
+              'Success ✅', 
+              `Push token has been registered with the backend!\n\nToken: ${expoPushToken.substring(0, 40)}...`
+            );
+          } catch (error) {
+            console.error('Manual push token registration error:', error);
+            Alert.alert('Error', 'Failed to register push token: ' + (error as Error).message);
+          }
+        })();
         return;
       }
       

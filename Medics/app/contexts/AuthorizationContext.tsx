@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || 'http://192.168.137.1:4000';
 
 interface Authorization {
   id: number;
@@ -30,7 +33,7 @@ export const AuthorizationProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get('http://10.10.112.140:4000/api/authorizations', {
+      const response = await axios.get(`${BACKEND_URL}/api/authorizations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Extract authorizations array from response
@@ -47,13 +50,19 @@ export const AuthorizationProvider: React.FC<{ children: React.ReactNode }> = ({
   const grantAccess = async (doctorId: string, expiresInDays?: number) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      await axios.post(
-        'http://10.10.112.140:4000/api/authorizations/grant',
+      console.log(`🔐 Granting access to doctor ${doctorId} for ${expiresInDays || 'unlimited'} days`);
+      console.log(`📡 Backend URL: ${BACKEND_URL}`);
+      
+      const response = await axios.post(
+        `${BACKEND_URL}/api/authorizations/grant`,
         { doctorId, expiresInDays },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      
+      console.log('✅ Access granted successfully:', response.data);
       await fetchAuthorizations();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Grant access error:', error.response?.data || error.message);
       throw error;
     }
   };
@@ -61,12 +70,17 @@ export const AuthorizationProvider: React.FC<{ children: React.ReactNode }> = ({
   const revokeAccess = async (doctorId: string) => {
     try {
       const token = await AsyncStorage.getItem('token');
+      console.log(`🚫 Revoking access for doctor ${doctorId}`);
+      
       await axios.delete(
-        `http://10.10.112.140:4000/api/authorizations/revoke/${doctorId}`,
+        `${BACKEND_URL}/api/authorizations/revoke/${doctorId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      
+      console.log('✅ Access revoked successfully');
       await fetchAuthorizations();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Revoke access error:', error.response?.data || error.message);
       throw error;
     }
   };

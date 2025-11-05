@@ -1,6 +1,7 @@
 const db = require('../db');
 const { v4: uuidv4 } = require('uuid');
 const { encryptText, decryptText } = require('../cryptoUtil');
+const { createNotification } = require('./notificationController');
 
 /**
  * GET /api/doctor/chats
@@ -202,20 +203,28 @@ async function sendMessage(req, res) {
       WHERE id = $2
     `, [textEnc, chatId]);
 
-    // Create notification for patient
-    await db.query(`
-      INSERT INTO notifications (id, patient_id, title, description, type, icon_name, icon_color, related_id, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-    `, [
-      uuidv4(),
-      patientId,
-      'New Message',
-      `You have a new message from your doctor`,
-      'chat',
-      'chatbubble',
-      '#0091F5',
-      chatId
-    ]);
+    // Get doctor name for notification
+    const doctorResult = await db.query(
+      'SELECT name_enc FROM doctors WHERE id = $1',
+      [doctorId]
+    );
+    const doctorName = doctorResult.rows.length > 0 && doctorResult.rows[0].name_enc 
+      ? decryptText(doctorResult.rows[0].name_enc) 
+      : 'Your doctor';
+
+    // Create notification and send push notification for patient
+    const messagePreview = text.trim().length > 100 
+      ? text.trim().substring(0, 100) + '...' 
+      : text.trim();
+    
+    await createNotification(patientId, {
+      title: `New message from ${doctorName}`,
+      description: messagePreview,
+      type: 'message',
+      iconName: 'chatbubble',
+      iconColor: '#8B5CF6',
+      relatedId: chatId
+    });
 
     res.json({ 
       success: true,

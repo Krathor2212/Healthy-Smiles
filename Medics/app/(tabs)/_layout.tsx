@@ -3,6 +3,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppDataProvider } from '../contexts/AppDataContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
+import { NotificationPollingProvider } from '../contexts/NotificationPollingContext';
 import { AuthorizationProvider } from '../contexts/AuthorizationContext';
 import { defaultScreenOptions } from '../Navigation/NavigationConfig';
 import ScreenWrapper from '../components/ScreenWrapper';
@@ -138,11 +139,13 @@ function MainNavigator() {
 export default function App() {
   return (
     <NotificationProvider>
-      <AppDataProvider>
-        <AuthorizationProvider>
-          <MainNavigator />
-        </AuthorizationProvider>
-      </AppDataProvider>
+      <NotificationPollingProvider>
+        <AppDataProvider>
+          <AuthorizationProvider>
+            <MainNavigator />
+          </AuthorizationProvider>
+        </AppDataProvider>
+      </NotificationPollingProvider>
     </NotificationProvider>
   );
 }

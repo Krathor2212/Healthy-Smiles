@@ -28,6 +28,7 @@ const prescriptionRoutes = require('./routes/prescriptions');
 const authorizationRoutes = require('./routes/authorizations');
 const accessRequestRoutes = require('./routes/accessRequests');
 const adminRoutes = require('./routes/admin');
+const migrationRoutes = require('./routes/migration');
 
 // Import controllers
 const { register, login } = require('./controllers/authController');
@@ -71,6 +72,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes); // Also mount under /auth for password reset
 app.use('/api/admin', adminRoutes); // Admin routes
+app.use('/api/migration', migrationRoutes); // Migration endpoint
 app.use('/api/doctor', doctorRoutes);
 app.use('/api/doctors', doctorRoutes); // Plural route for getting all doctors
 app.use('/api/doctor', doctorChatRoutes); // Doctor chat routes

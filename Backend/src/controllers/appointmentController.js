@@ -1,6 +1,7 @@
 const db = require('../db');
 const { v4: uuidv4 } = require('uuid');
 const { encryptText, decryptText } = require('../cryptoUtil');
+const { createNotification } = require('./notificationController');
 
 /**
  * GET /api/appointments
@@ -179,20 +180,15 @@ async function createAppointment(req, res) {
       hospitalName, hospitalAddress, JSON.stringify(paymentData)
     ]);
 
-    // Create notification
-    await db.query(`
-      INSERT INTO notifications (
-        patient_id, title, description, type, icon_name, icon_color, related_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [
-      userId,
-      'Appointment Confirmed',
-      `Your appointment with ${doctor.name} is confirmed for ${date} at ${time}.`,
-      'appointment',
-      'calendar',
-      '#34D399',
-      appointmentId
-    ]);
+    // Create notification and send push notification
+    await createNotification(userId, {
+      title: 'Appointment Confirmed',
+      description: `Your appointment with ${doctor.name} is confirmed for ${date} at ${time}.`,
+      type: 'appointment',
+      iconName: 'calendar',
+      iconColor: '#34D399',
+      relatedId: appointmentId
+    });
 
     res.status(201).json({
       success: true,

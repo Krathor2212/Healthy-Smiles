@@ -1,5 +1,6 @@
 const db = require('../db');
 const { v4: uuidv4 } = require('uuid');
+const { createNotification } = require('./notificationController');
 
 /**
  * GET /api/orders
@@ -127,20 +128,15 @@ async function createOrder(req, res) {
       estimatedDelivery, trackingNumber
     ]);
 
-    // Create notification
-    await db.query(`
-      INSERT INTO notifications (
-        patient_id, title, description, type, icon_name, icon_color, related_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [
-      userId,
-      'Order Placed',
-      `Your order ${orderNumber} has been placed successfully.`,
-      'order',
-      'cart',
-      '#34D399',
-      orderId
-    ]);
+    // Create notification and send push notification
+    await createNotification(userId, {
+      title: 'Order Placed Successfully',
+      description: `Your order ${orderNumber} has been placed and is being processed.`,
+      type: 'order',
+      iconName: 'cart',
+      iconColor: '#34D399',
+      relatedId: orderId
+    });
 
     res.status(201).json({
       success: true,
